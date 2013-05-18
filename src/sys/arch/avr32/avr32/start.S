@@ -51,8 +51,6 @@ _start:
 	cp	r1, r2
 	brlo	1b
 
-	/* Initialize the avr32_lwp structure. */
-	lda.w	r1, lwp0
 
 #ifndef AVR32_INITIAL_STATUS
 #define AVR32_INITIAL_STATUS \
