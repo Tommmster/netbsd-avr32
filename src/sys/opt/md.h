@@ -1,0 +1,1 @@
+#define NMD	1
