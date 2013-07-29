@@ -199,7 +199,6 @@ hardclock(struct clockframe *frame)
 	l = ci->ci_data.cpu_onproc;
 
 	timer_tick(l, CLKF_USERMODE(frame));
-
 	/*
 	 * If no separate statistics clock is available, run it from here.
 	 */

@@ -32,6 +32,7 @@
 #ifndef _AVR32_PTE_H_
 #define _AVR32_PTE_H_
 
+#ifndef _LOCORE
 struct avr32_pte {
 unsigned int pfn:22,	/* PFN */
 	pg_c:1,		/* Cacheable */
@@ -42,10 +43,12 @@ unsigned int pfn:22,	/* PFN */
 	pg_d:1,		/* Dirty bit */ 
 	pg_w:1;		/* Write through */
 }; 
-                    
+#endif /* !_LOCORE */
+
 #define AVR32_PG_FRAME		0xfffff000
 #define AVR32_PG_VPN		0xfffff000
 #define AVR32_PG_VALID		0x00000200 
+#define AVR32_PG_NVALID		0X00000000
 #define AVR32_PG_INSTR		0x00000100
 #define AVR32_PG_ASID		0x000000ff
                     
@@ -60,10 +63,16 @@ unsigned int pfn:22,	/* PFN */
 #define AVR32_PG_DIRTY		0x00000002
 #define AVR32_PG_WTHRU		0x00000001
                     
+/* XXXAVR32 Rename to KRO, RKW, etc */
 #define AVR32_PG_ACCESS_RO	0x00000000
 #define AVR32_PG_ACCESS_RX	0x00000010
 #define AVR32_PG_ACCESS_RW	0x00000020
 #define AVR32_PG_ACCESS_RWX	0x00000030   
+
+#define AVR32_PG_ACCESS_URO	0x00000040
+#define AVR32_PG_ACCESS_URX	0x00000050
+#define AVR32_PG_ACCESS_URW	0x00000060
+#define AVR32_PG_ACCESS_URWX	0x00000070   
 
 /* Write protected */
 #define avr32_pte_ropage_bit() (AVR32_PG_ACCESS_RO)
@@ -75,7 +84,7 @@ unsigned int pfn:22,	/* PFN */
 #define avr32_pte_cwncpage_bit() (AVR32_PG_ACCESS_RW | AVR32_PG_UNCACHED)
 
 /* Not write protected, not clean */
-#define avr32_pte_rwpage_bit() ( AVR32_PG_ACCESS_RW | AVR32_PG_DIRTY | AVR32_PG_CACHED)
+#define avr32_pte_rwpage_bit() (AVR32_PG_ACCESS_RW | AVR32_PG_DIRTY | AVR32_PG_CACHED)
 
 /* Not write protected, but clean */
 #define avr32_pte_cwpage_bit() (AVR32_PG_ACCESS_RW | AVR32_PG_CACHED)
@@ -106,6 +115,7 @@ unsigned int pfn:22,	/* PFN */
 #define  ptetokv(pte) \
    ((((pt_entry_t *)(pte) - Sysmap) << PGSHIFT) + VM_MIN_KERNEL_ADDRESS)
 
+#ifndef _LOCORE
 typedef union pt_entry{
 	struct avr32_pte pt_avr32_pte;	/* for copying, etc. */
 	unsigned int pt_entry;		/* for getting to bits by name. */
@@ -114,4 +124,5 @@ typedef union pt_entry{
 extern   pt_entry_t *Sysmap;	/* kernel pte table */
 extern   u_int Sysmapsize;	/* number of pte's in Sysmap */
 
+#endif /* !_LOCORE */
 #endif /* !_AVR32_PTE_H_ */

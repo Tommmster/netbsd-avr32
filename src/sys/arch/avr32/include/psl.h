@@ -34,6 +34,7 @@
 
 #include <avr32/cpuregs.h>
 
-#define USERMODE(st)	AVR32_USER_MODE(st)
+#define EXECMODE(sr)	(((sr) & AVR32_STATUS_MMASK) >> AVR32_STATUS_MSHIFT)
+#define USERMODE(sr)	(((sr) & AVR32_STATUS_MMASK) == AVR32_STATUS_MUSER)
 
 #endif /* !_PSL_H_ */

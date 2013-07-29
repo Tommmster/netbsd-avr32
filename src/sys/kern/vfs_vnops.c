@@ -365,7 +365,6 @@ vn_rdwr(enum uio_rw rw, struct vnode *vp, void *base, int len, off_t offset,
 	struct uio auio;
 	struct iovec aiov;
 	int error;
-
 	if ((ioflg & IO_NODELOCKED) == 0) {
 		if (rw == UIO_READ) {
 			vn_lock(vp, LK_SHARED | LK_RETRY);

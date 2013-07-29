@@ -50,8 +50,7 @@
 	.align 2
 
 kcopy:
-	stm	--sp, r0,lr
-
+	stm	--sp, r0, lr
 	/* Swap r12 <-> r11 for call to memcpy. */
 	mov	r8, r12
 	mov	r12, r11
@@ -64,7 +63,6 @@ kcopy:
 	ld.w	r0, r8[U_PCB_ONFAULT]
 	lda.w	r9, kcopyerr
 	st.w	r8[U_PCB_ONFAULT], r9
-
 	/* All set. */
 	rcall	memcpy
 
@@ -75,7 +73,7 @@ kcopy:
 	st.w	r8[U_PCB_ONFAULT], r0
 
 	/* Success! */
-	ldm	sp++, r0,lr
+	ldm	sp++, r0, lr
 	mov	r12, 0
 	mov	pc, lr
 	.size	kcopy, . - kcopy
@@ -128,6 +126,46 @@ copystr:
 
 3:	ldm	sp++, r7,pc
 	.size 	copystr, . - copystr
+
+/*
+ * int copyin(void *uaddr, void *kaddr, size_t len)
+ * Copies len bytes of data from the user-space address uaddr to the
+ * kernel-space address kaddr.  copyin returns 0 on success or EFAULT
+ * if a bad address is encountered.
+ */
+	.text
+	.globl copyin
+	.align 1
+copyin:	
+	stm	--sp, lr
+
+	/* 
+	 * Set copyerr for exception handling
+	 */
+	lda.w	r8, avr32_curlwp
+	ld.w	r8, r8[0]
+	ld.w	r8, r8[L_ADDR]
+	lda.w	r9, copyerr
+	ld.w	r9, r9[0]
+	st.w	r8[U_PCB_ONFAULT], r9
+	
+	mov	r9, r12
+	mov	r12, r11
+	mov	r11, r9
+	rcall	memcpy
+
+	/*
+	 * reset the error handler
+	 */
+	lda.w	r8, avr32_curlwp
+	ld.w	r8, r8[0]	
+	ld.w	r8, r8[L_ADDR]
+	mov	r9, 0
+	st.w	r8[U_PCB_ONFAULT], r9
+
+	mov	r12, 0
+	ldm	sp++, pc
+	.size copyin, .-copyin
 
 /*          
  * int copyout(void *kaddr, void *uaddr, size_t len)
@@ -258,11 +296,64 @@ copyinstr:
 4:	mov	r12, 1
 	bral	3b
 	.size copyinstr, . - copyinstr
+/*
+ * int copyoutstr(void *kaddr, void *uaddr, size_t maxlen, size_t *lencopied);
+ * Copy a NIL-terminated string, at most maxlen characters long, into the
+ * user's address space.  Return the number of characters copied (including
+ * the NIL) in *lencopied.  If the string is too long, return ENAMETOOLONG;
+ * else return 0 or EFAULT.
+ */
+	.text
+	.globl copyoutstr
+	.align 2
+copyoutstr:
+	/* Must use some extra registers */
+	stm	--sp, r6-r7, lr
+	mov	r7, r10
+
+	lda.w	r8, avr32_curlwp
+	ld.w	r8, r8[0]
+	ld.w	r8, r8[L_ADDR]
+	lda.w	r6, copystrerr
+	ld.w	r6, r6[0]
+	st.w	r8[U_PCB_ONFAULT], r6
+
+	cp.w	r10, 0
+	breq	4f
+
+1:	ld.ub	r8, r12[0]
+	sub	r10, 1
+	st.b	r11[0], r8 
+	cp.w	r8, 0
+	moveq	r12, 0
+	breq	2f
+	sub	r12, -1
+	sub	r11, -1
+
+	cp.w	r10, 0
+	brne	1b
+	
+4:	mov	r12, ENAMETOOLONG
+
+2:	cp.w	r9, 0
+	breq	3f
+	sub	r7, r10
+	st.w	r9[0], r7
+
+3:	lda.w	r8, avr32_curlwp
+	ld.w	r8, r8[0]
+	ld.w	r8, r8[L_ADDR]
+	mov	r6, 0
+	st.w	r8[U_PCB_ONFAULT], r6
+
+	ldm	sp++, r6-r7, lr
+	mov	pc, lr
+
+	.size copyoutstr, .-copyoutstr
 
 	.text
 	.globl copystrerr
 	.align 2
-
 copystrerr:
 	lda.w	r12, copystrerr_panic	
 	rcall	panic

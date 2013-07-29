@@ -992,6 +992,7 @@ retry:
 		 */
 
 		if (flags & PGO_FREE) {
+			panic("[XXXAVR32] %s %s %d", __FILE__, __FUNCTION__, __LINE__);
 			pmap_page_protect(pg, VM_PROT_NONE);
 		} else if (flags & PGO_CLEANIT) {
 
@@ -1009,6 +1010,7 @@ retry:
 				 */
 
 				if (pg->wire_count == 0) {
+					panic("[XXXAVR32] %s %s %d", __FILE__, __FUNCTION__, __LINE__);
 					pmap_page_protect(pg,
 					    VM_PROT_READ|VM_PROT_EXECUTE);
 				} else {
@@ -1097,6 +1099,7 @@ retry:
 			if (flags & PGO_DEACTIVATE && tpg->wire_count == 0) {
 				uvm_pagedeactivate(tpg);
 			} else if (flags & PGO_FREE) {
+				panic("[XXXAVR32] %s %s %d", __FILE__, __FUNCTION__, __LINE__);
 				pmap_page_protect(tpg, VM_PROT_NONE);
 				if (tpg->flags & PG_BUSY) {
 					tpg->flags |= freeflag;

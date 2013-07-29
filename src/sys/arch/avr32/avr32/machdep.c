@@ -55,7 +55,7 @@
 #include <avr32/cache.h>
 #include <avr32/locore.h>
 #include <avr32/cpuregs.h>
-
+#include <avr32/reg.h>
 #include <machine/kcore.h>
 #include <machine/cpu.h>
 #include <machine/param.h>
@@ -307,10 +307,10 @@ cpu_reboot(volatile int howto, char *bootsr)
 {
 	/*
 	 * XXX Cannot panic() here due to recursion issues. This routine
-	 * needs extensive overhaaul, for now we just print a message and
+	 * needs extensive overhaul, for now we just print a message and
 	 * halt. 
 	 */
-	printf("cpu_reboot\n");
+	printf("cpu_reboot: notyet\n");
 	while (1)
 		;
 }
@@ -483,12 +483,6 @@ cpu_need_proftick(struct lwp *l)
 }
 
 void
-cpu_signotify(struct lwp *l)
-{
-	panic("cpu_signotify: notyet");
-}
-
-void
 cpu_getmcontext(struct lwp *l, mcontext_t *mcp, unsigned int *flags)
 {	
 	panic("cpu_getmcontext: notyet");
@@ -504,7 +498,29 @@ cpu_setmcontext(struct lwp *l, const mcontext_t *mcp, unsigned int flags)
 void
 setregs(struct lwp *l, struct exec_package *pack, u_long stack)
 {
-	panic("setregs: notyet");
+	struct frame *f = (struct frame *)l->l_md.md_regs;
+
+	memset(f, 0, sizeof(struct frame));
+	f->f_regs[_R_SP] = (int)stack;
+	f->f_regs[_R_PC] = (int)pack->ep_entry & ~1;
+
+	//f->f_regs[_R_T9] = (int)pack->ep_entry & ~3; /* abicall requirement */
+	//f->f_regs[_R_SR] = PSL_USERSET;
+	/*
+	 * Set up arguments for _start():
+	 *	_start(stack, obj, cleanup, ps_strings);
+	 *
+	 * Notes:
+	 *	- obj and cleanup are the auxiliary and termination
+	 *	  vectors.  They are fixed up by ld.elf_so.
+	 *	- ps_strings is a NetBSD extension.
+	 */
+	f->f_regs[_R_R12] = (uintptr_t)stack;
+	f->f_regs[_R_R11] = 0;
+	f->f_regs[_R_R10] = 0;
+	f->f_regs[_R_R9] = (intptr_t)l->l_proc->p_psstr;
+
+	l->l_md.md_ss_addr = 0;
 }
 
 void

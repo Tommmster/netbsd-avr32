@@ -1,6 +1,8 @@
 #! /bin/bash
 
 for sub in ./sys/uvm ./sys/compat/sa ./sys/compat/common ./sys/kern \
+	   ./sys/compat/linux/arch/avr32 ./sys/compat/linux/common \
+	   ./sys/compat/ossaudio	\
            ./sys/miscfs/specfs ./sys/ufs/ext2fs ./sys/ufs/ufs ./sys/ufs/ffs \
            ./sys/miscfs/genfs ./sys/miscfs/deadfs ./sys/miscfs/syncfs \
            ./sys/miscfs/fifofs ./sys/net ./sys/conf ./sys/arch/avr32/avr32 \

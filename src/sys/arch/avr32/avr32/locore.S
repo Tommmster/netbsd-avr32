@@ -40,9 +40,9 @@
  */
 	.align 1
 	.text
-	.globl _cpu_switchto
+	.globl cpu_switchto
 
-_cpu_switchto:
+cpu_switchto:
 	/*
 	 * Save the old context, unless it is exiting.
 	 */
@@ -157,12 +157,22 @@ lwp_trampoline:
 	icall	r0
 
 	/* Return to user (won't happen if a kernel thread) */
-	lda.w	r12, L_LWP_TRAMPOLINE_PANIC
-	rcall	panic
+
+	ld.w	r0, sp++	
+	mtsr	SR_RSR_SUP, r0
+	nop
+
+	ld.w	r0, sp++
+	mtsr	SR_RAR_SUP, r0
+	nop
+
+	ldmts	sp++, r0-lr
+	rets	
+
 	.size lwp_trampoline, . - lwp_trampoline
 
 L_LWP_TRAMPOLINE_PANIC:
-	.asciz "lwp_trampoline"
+	.asciz "lwp_trampoline %x"
 
 /*
  * Support routines for the spl(9) infrastructure follow.
@@ -276,11 +286,10 @@ _splset:
 #else
 	lda.w	r12, L_splset_msg
 	rcall	panic
-
+#endif
 	.section .data
 L_splset_msg:
-	.asciz "_splset"
-#endif
+	.asciz "_splset %x\n"
 
 	.align 2
 	.text

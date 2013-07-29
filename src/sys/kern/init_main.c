@@ -292,6 +292,8 @@ main(void)
 	printf("L_ADDR %d\n", offsetof(struct lwp, l_addr));
 	printf("L_MD_UPTE0 %d\n", offsetof(struct lwp, l_md.md_upte[0]));
 	printf("L_MD_UPTE1 %d\n", offsetof(struct lwp, l_md.md_upte[1]));
+	printf("L_PROC %d\n", offsetof(struct lwp, l_proc));
+	printf("P_MD_SYSCALL %d\n", offsetof(struct proc, p_md.md_syscall));
 #endif 
 	l = &lwp0;
 #ifndef LWP0_CPU_INFO
@@ -842,7 +844,7 @@ start_init(void *arg)
 #endif
 			arg1 = STACK_ALLOC(ucp, i);
 			ucp = STACK_MAX(arg1, i);
-			(void)copyout((void *)flags, arg1, i);
+		(void)copyout((void *)flags, arg1, i);
 		}
 
 		/*

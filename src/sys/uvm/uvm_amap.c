@@ -715,7 +715,6 @@ amap_wipeout(struct vm_amap *amap)
 			/*
 			 * we had the last reference to a vm_anon. free it.
 			 */
-
 			uvm_anfree(anon);
 		}
 

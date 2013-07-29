@@ -440,7 +440,7 @@ bufinit(void)
 	mutex_init(&bufcache_lock, MUTEX_DEFAULT, IPL_NONE);
 	mutex_init(&buffer_lock, MUTEX_DEFAULT, IPL_NONE);
 	cv_init(&needbuffer_cv, "needbuf");
-
+	
 	if (bufmem_valimit != 0) {
 		vaddr_t minaddr = 0, maxaddr;
 		buf_map = uvm_km_suballoc(kernel_map, &minaddr, &maxaddr,

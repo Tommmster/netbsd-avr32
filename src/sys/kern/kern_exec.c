@@ -675,7 +675,6 @@ execve1(struct lwp *l, const char *path, char * const *args,
 #else
 #define	RTLD_GAP	0
 #endif
-
 	/* Now check if args & environ fit into new stack */
 	if (pack.ep_flags & EXEC_32)
 		len = ((argc + envc + 2 + pack.ep_esch->es_arglen) *
@@ -739,7 +738,6 @@ execve1(struct lwp *l, const char *path, char * const *args,
 	 * vmspace with another!
 	 */
 	uvmspace_exec(l, pack.ep_vm_minaddr, pack.ep_vm_maxaddr);
-
 	/* record proc's vnode, for use by procfs and others */
         if (p->p_textvp)
                 vrele(p->p_textvp);
@@ -1211,10 +1209,11 @@ copyargs(struct lwp *l, struct exec_package *pack, struct ps_strings *arginfo,
 	/* XXX don't copy them out, remap them! */
 	arginfo->ps_argvstr = cpp; /* remember location of argv for later */
 
-	for (; --argc >= 0; sp += len, dp += len)
+	for (; --argc >= 0; sp += len, dp += len) 
 		if ((error = copyout(&dp, cpp++, sizeof(dp))) != 0 ||
 		    (error = copyoutstr(sp, dp, ARG_MAX, &len)) != 0)
 			return error;
+	
 
 	if ((error = copyout(&nullp, cpp++, sizeof(nullp))) != 0)
 		return error;

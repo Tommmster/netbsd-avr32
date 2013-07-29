@@ -94,7 +94,6 @@ __KERNEL_RCSID(0, "$NetBSD: linux_machdep.c,v 1.38 2008/04/28 20:23:43 martin Ex
 void
 linux_setregs(struct lwp *l, struct exec_package *pack, u_long stack)
 {
-	panic("linux_setregs");
 	setregs(l, pack, stack);
 	return;
 }

@@ -35,27 +35,6 @@
 #include <machine/param.h>
 
 /* XXXAVR32 Machine dependent. IMPLEMENT AS ASSEMBLY CODE ! */
-
-struct lwp*
-cpu_switchto(struct lwp *cur, struct lwp *next)
-{
-#define L_NAME(lwp) \
-	((lwp->l_name) ? (lwp->l_name) : "null")
-
-#define NAME(lwp) \
-	((lwp) ? L_NAME(lwp) : "an exiting lwp")
-
-#if 0
-	printf("cpu_switchto: from %s to %s\n", NAME(cur), NAME(next));
-#endif
-#if 0
-	printf("L_ADDR(old): %x  L_ADDR(new): %x \n", cur->l_addr, next->l_addr);
-	printf("UPAGES(old): %x , %x  \n", cur->l_md.md_upte[0], cur->l_md.md_upte[1]);
-	printf("UPAGES(new): %x , %x  \n", next->l_md.md_upte[0], next->l_md.md_upte[1]);
-#endif
-	return _cpu_switchto(cur, next);
-}
-
 void
 dump_rx(unsigned int seq, unsigned int reg)
 {
@@ -66,9 +45,4 @@ void*
 setfunc_trampoline(void)
 {
 	panic("setfunc_trampoline: notyet");
-}
-
-void
-MachSetPID(int pid)
-{
 }

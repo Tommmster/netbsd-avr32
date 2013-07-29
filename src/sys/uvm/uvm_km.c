@@ -625,7 +625,6 @@ uvm_km_alloc(struct vm_map *map, vsize_t size, vsize_t align, uvm_flag_t flags)
 		/*
 		 * map it in
 		 */
-
 		pmap_kenter_pa(loopva, VM_PAGE_TO_PHYS(pg), prot|PMAP_KMPAGE);
 		loopva += PAGE_SIZE;
 		offset += PAGE_SIZE;

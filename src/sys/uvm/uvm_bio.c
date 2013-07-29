@@ -291,7 +291,7 @@ again:
 	    slot_offset, umap->writeoff, umap->writelen, 0);
 	UVMHIST_LOG(ubchist, "getpages uobj %p offset 0x%x npages %d",
 	    uobj, umap->offset + slot_offset, npages, 0);
-
+		
 	error = (*uobj->pgops->pgo_get)(uobj, umap->offset + slot_offset, pgs,
 	    &npages, 0, access_type, umap->advice, flags | PGO_NOBLOCKALLOC |
 	    PGO_NOTIMESTAMP);
@@ -369,7 +369,6 @@ again:
 				pg = newpg;
 			}
 		}
-
 		/*
 		 * note that a page whose backing store is partially allocated
 		 * is marked as PG_RDONLY.

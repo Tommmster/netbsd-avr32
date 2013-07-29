@@ -1,5 +1,4 @@
 /*	$NetBSD$	*/  
-
 /*-
  * Copyright (c) 2013 The NetBSD Foundation, Inc.
  * All rights reserved.
@@ -39,12 +38,14 @@
 
 #define T_BUS_ERR_LD_ST		2	/* Bus error on dfetch */
 #define T_BUS_ERR_IFETCH	3	/* Bus error on ifetch */
+#define T_TLB_PROT		6	/* TLB protection */
+#define T_DTLB_PROT		10	/* DTLB PProt */
 #define T_ADDR_ERR_LD		13	/* Address error on read */
 #define T_ADDR_ERR_ST		14	/* Address error on write */
 #define T_TLB_MOD		17	/* TLB Modified */
+#define T_ITLB_MISS		20	/* ITLB Miss */
 #define T_TLB_LD_MISS		24	/* TLB Miss on read */
 #define T_TLB_ST_MISS		28	/* TLB Miss on write */
-
 #define T_USER			0x8000	/* user-mode flag or'ed with type */
 
 #endif /* _TRAP_H_ */

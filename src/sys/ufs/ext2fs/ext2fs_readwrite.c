@@ -122,7 +122,7 @@ ext2fs_read(void *v)
 	ump = ip->i_ump;
 	uio = ap->a_uio;
 	error = 0;
-
+	
 #ifdef DIAGNOSTIC
 	if (uio->uio_rw != UIO_READ)
 		panic("%s: mode", "ext2fs_read");

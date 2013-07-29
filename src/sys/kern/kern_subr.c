@@ -192,7 +192,6 @@ uiomove(void *buf, size_t n, struct uio *uio)
 		KDASSERT(cnt <= n);
 		n -= cnt;
 	}
-
 	return (error);
 }
 
@@ -287,7 +286,6 @@ copyout_vmspace(struct vmspace *vm, const void *kaddr, void *uaddr, size_t len)
 	struct iovec iov;
 	struct uio uio;
 	int error;
-
 	if (len == 0)
 		return (0);
 

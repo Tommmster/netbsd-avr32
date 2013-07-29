@@ -149,7 +149,6 @@ at32clock_intr(void *victx, void *vuctx)
 	cf.st = ictx->st;
 	cf.pc = ictx->pc;
 	hardclock(&cf);
-
 	/* Update statistics. */
 	at32clock_evcnt.ev_count++;
 }

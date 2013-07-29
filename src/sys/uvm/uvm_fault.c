@@ -712,7 +712,6 @@ uvm_fault_internal(struct vm_map *orig_map, vaddr_t vaddr,
 
 	UVMHIST_LOG(maphist, "(map=0x%x, vaddr=0x%x, at=%d, ff=%d)",
 	      orig_map, vaddr, access_type, fault_flag);
-
 	anon = anon_spare = NULL;
 	pg = NULL;
 
@@ -736,7 +735,6 @@ uvm_fault_internal(struct vm_map *orig_map, vaddr_t vaddr,
 	 * "goto ReFault" means restart the page fault from ground zero.
 	 */
 ReFault:
-
 	/*
 	 * lookup and lock the maps
 	 */
@@ -1024,7 +1022,6 @@ ReFault:
 		    centeridx, access_type, PGO_LOCKED|PGO_SYNCIO);
 
 		/* locked: nothing, pgo_fault has unlocked everything */
-
 		if (error == ERESTART)
 			goto ReFault;		/* try again! */
 		/*
@@ -1385,7 +1382,6 @@ ReFault:
 	/*
 	 * now map the page in.
 	 */
-
 	UVMHIST_LOG(maphist, "  MAPPING: anon: pm=0x%x, va=0x%x, pg=0x%x",
 	    ufi.orig_map->pmap, ufi.orig_rvaddr, pg, 0);
 	if (pmap_enter(ufi.orig_map->pmap, ufi.orig_rvaddr, VM_PAGE_TO_PHYS(pg),
@@ -1452,7 +1448,6 @@ Case2:
 	/*
 	 * handle case 2: faulting on backing object or zero fill
 	 */
-
 	/*
 	 * locked:
 	 * maps(read), amap(if there), uobj(if !null), uobjpage(if !null)

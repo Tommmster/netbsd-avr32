@@ -73,7 +73,6 @@ ELFNAME2(linux32,probe)(l, epp, eh, itp, pos)
 	vaddr_t *pos;
 {
 	int error;
-
 	if (((error = ELFNAME2(linux,signature)(l, epp, eh, itp)) != 0) &&
 #ifdef LINUX32_GCC_SIGNATURE
 	    ((error = ELFNAME2(linux,gcc_signature)(l, epp, eh)) != 0) &&

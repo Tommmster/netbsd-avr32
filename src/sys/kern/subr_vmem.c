@@ -869,7 +869,6 @@ vmem_alloc(vmem_t *vm, vmem_size_t size, vm_flag_t flags)
 		    vmf_to_prf(flags));
 	}
 #endif /* defined(QCACHE) */
-
 	return vmem_xalloc(vm, size, 0, 0, 0, 0, 0, flags);
 }
 
@@ -969,6 +968,8 @@ retry:
 	}
 	/* XXX */
 fail:
+
+			
 	bt_free(vm, btnew);
 	bt_free(vm, btnew2);
 	return VMEM_ADDR_NULL;

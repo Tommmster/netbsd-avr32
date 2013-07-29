@@ -31,10 +31,14 @@
 #ifndef _AVR32_CPU_H_
 #define _AVR32_CPU_H_
 
-#include <sys/device.h>
-#include <sys/cpu_data.h>
-
 #include <avr32/cpuregs.h>
+
+/*
+ * Exported definitions unique to NetBSD/avr32 cpu support.
+ */
+#ifdef _KERNEL
+#ifndef _LOCORE
+#include <sys/cpu_data.h>
 
 struct cpu_info {
 	struct cpu_data ci_data;	/* MI per-cpu data */
@@ -54,9 +58,14 @@ struct clockframe {
 	int	pc;	/* pc at the time of the interrupt */
 };
 
-#define CLKF_INTR(fp)     0
-#define CLKF_PC(fp)       0
-#define CLKF_USERMODE(fp) AVR32_USER_MODE((fp)->st)
+#endif /* !_LOCORE */
+#endif /* _KERNEL */
+
+#define CLKF_INTR(fp)		0
+#define CLKF_PC(fp)		0
+#define CLKF_USERMODE(fp)	AVR32_USER_MODE((fp)->st)
+
+#ifndef _LOCORE
 
 extern struct cpu_info cpu_info_store;
 extern struct lwp *avr32_curlwp; 
@@ -71,6 +80,13 @@ extern struct lwp *avr32_curlwp;
 void cpu_identify(void);
 void avr32_vector_init(void);
 
+/*
+ * Notify the current lwp (l) that it has a signal pending,
+ * process as soon as possible.
+ */
+#define cpu_signotify(l)	aston(l)
+
 #define aston(l)		((l)->l_md.md_astpending = 1)
 
+#endif /* !_LOCORE */
 #endif /* !_AVR32_CPU_H_ */

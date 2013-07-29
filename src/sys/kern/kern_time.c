@@ -1427,7 +1427,7 @@ timer_intr(void *cookie)
 	ksiginfo_t ksi;
 	struct ptimer *pt;
 	proc_t *p;
-	
+	panic("[XXXAVR32] %s %s %d\n", __FILE__, __FUNCTION__, __LINE__);	
 	mutex_enter(proc_lock);
 	mutex_spin_enter(&timer_lock);
 	while ((pt = TAILQ_FIRST(&timer_queue)) != NULL) {

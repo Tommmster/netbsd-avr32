@@ -49,6 +49,33 @@
 #define PMAP_PV_LOWAT   16
 #endif
 
+const u_int protection_codes[2][8] = {
+	/* kernel */
+	{
+	AVR32_PG_ACCESS_RO,	/* VM_PROT_NONE | VM_PROT_NONE | VM_PROT_NONE */
+	AVR32_PG_ACCESS_RO,	/* VM_PROT_NONE | VM_PROT_NONE | VM_PROT_READ */
+	AVR32_PG_ACCESS_RW,	/* VM_PROT_NONE | VM_PROT_WRITE | VM_PROT_NONE */
+	AVR32_PG_ACCESS_RW,	/* VM_PROT_NONE | VM_PROT_WRITE | VM_PROT_READ */
+	AVR32_PG_ACCESS_RX,	/* VM_PROT_EXEC | VM_PROT_NONE | VM_PROT_NONE */
+	AVR32_PG_ACCESS_RX,	/* VM_PROT_EXEC | VM_PROT_NONE | VM_PROT_READ */
+	AVR32_PG_ACCESS_RWX,	/* VM_PROT_EXEC | VM_PROT_WRITE | VM_PROT_NONE */
+	AVR32_PG_ACCESS_RWX,	/* VM_PROT_EXEC | VM_PROT_WRITE | VM_PROT_READ */
+	},
+	/* user */
+	{
+	AVR32_PG_ACCESS_URO,	/* VM_PROT_NONE | VM_PROT_NONE | VM_PROT_NONE */
+	AVR32_PG_ACCESS_URO,	/* VM_PROT_NONE | VM_PROT_NONE | VM_PROT_READ */
+	AVR32_PG_ACCESS_URW,	/* VM_PROT_NONE | VM_PROT_WRITE | VM_PROT_NONE */
+	AVR32_PG_ACCESS_URW,	/* VM_PROT_NONE | VM_PROT_WRITE | VM_PROT_READ */
+	AVR32_PG_ACCESS_URX,	/* VM_PROT_EXEC | VM_PROT_NONE | VM_PROT_NONE */
+	AVR32_PG_ACCESS_URX,	/* VM_PROT_EXEC | VM_PROT_NONE | VM_PROT_READ */
+	AVR32_PG_ACCESS_URWX,	/* VM_PROT_EXEC | VM_PROT_WRITE | VM_PROT_NONE */
+	AVR32_PG_ACCESS_URWX,	/* VM_PROT_EXEC | VM_PROT_WRITE | VM_PROT_READ */
+	}
+};
+#define pte_prot(pm, prot) \
+	(protection_codes[(pm) == pmap_kernel() ? 0 : 1][(prot)])
+
 int pmap_pv_lowat = PMAP_PV_LOWAT;
 
 bool pmap_initialized = false;
@@ -57,6 +84,7 @@ bool pmap_initialized = false;
 	(pmap_initialized == true && vm_physseg_find(atop(pa), NULL) != -1)
 
 /* Forward function declarations */
+void pmap_remove_pv(pmap_t, vaddr_t, struct vm_page *);
 void pmap_asid_alloc(pmap_t pmap);
 void pmap_enter_pv(pmap_t, vaddr_t, struct vm_page *, u_int *);
 
@@ -211,14 +239,154 @@ pmap_bootstrap(void)
 bool
 pmap_extract(pmap_t pmap, vaddr_t va, paddr_t *pap)
 {
-	panic("pmap_extract: notyet");
+	paddr_t pa;
+	pt_entry_t *pte;
+	
+#ifdef DEBUG
+	if (pmapdebug & PDB_FOLLOW)
+		printf("pmap_extract(%p, 0x%lx) -> ", pmap, va);
+#endif
+	if (pmap == pmap_kernel()) {
+		if (va >= AVR32_P1_START && va < AVR32_P2_START) {
+			pa = AVR32_P1_TO_PHYS(va);
+			goto done;
+		}
+#ifdef DIAGNOSTIC
+		else if (va >= AVR32_P2_START && va < AVR32_P3_START)
+			panic("pmap_extract: P2 address 0x%lx", va);
+#endif
+		else
+			pte = kvtopte(va);
+	} else {
+		if (!(pte = pmap_segmap(pmap, va))) {
+#ifdef DEBUG
+			if (pmapdebug & PDB_FOLLOW)
+				printf("not in segmap\n");
+#endif
+			return false;
+		}
+		pte += (va >> PGSHIFT) & (NPTEPG - 1);
+	}
+	if (!avr32_pte_v(pte->pt_entry)) {
+#ifdef DEBUG
+		if (pmapdebug & PDB_FOLLOW)
+			printf("PTE not valid\n");
+#endif
+		return false;
+	}
+	pa = avr32_tlbpfn_to_paddr(pte->pt_entry) | (va & PGOFSET);
+done:
+	if (pap != NULL) {
+		*pap = pa;
+	}
+#ifdef DEBUG
+	if (pmapdebug & PDB_FOLLOW)
+		printf("pa 0x%lx\n", (u_long)pa);
+#endif
 	return true;
 }
 
 void
 pmap_remove(pmap_t pmap, vaddr_t sva, vaddr_t eva)
 {
-	panic("pmap_remove: notyet");
+	struct vm_page *pg;
+	vaddr_t nssva;
+	pt_entry_t *pte;
+	unsigned entry;
+	unsigned asid, needflush;
+
+#ifdef DEBUG
+	if (pmapdebug & (PDB_FOLLOW|PDB_REMOVE|PDB_PROTECT))
+		printf("pmap_remove(%p, %lx, %lx)\n", pmap, sva, eva);
+	remove_stats.calls++;
+#endif
+	if (pmap == pmap_kernel()) {
+		/* remove entries from kernel pmap */
+#ifdef PARANOIADIAG
+		if (sva < VM_MIN_KERNEL_ADDRESS || eva >= virtual_end)
+			panic("pmap_remove: kva not in range");
+#endif
+		pte = kvtopte(sva);
+		for (; sva < eva; sva += NBPG, pte++) {
+			entry = pte->pt_entry;
+			if (!(entry & AVR32_PTE_VALID))
+				continue;
+			if (entry & AVR32_PTE_WIRED)
+				pmap->pm_stats.wired_count--;
+			pmap->pm_stats.resident_count--;
+			pg = PHYS_TO_VM_PAGE(avr32_tlbpfn_to_paddr(entry));
+			if (pg)
+				pmap_remove_pv(pmap, sva, pg);
+			pte->pt_entry = 0;
+
+			/*
+			 * Flush the TLB for the given address.
+			 */
+#define AVR32_TBIS(va)	avr32_tbis((va) | AVR32_PG_VALID, AVR32_PG_GLOBAL | AVR32_PG_SIZE_4K)
+
+			AVR32_TBIS(sva);
+#ifdef DEBUG
+			remove_stats.flushes++;
+
+#endif
+		}
+		return;
+	}
+
+#ifdef PARANOIADIAG /* XXXAVR32 */
+	if (eva > VM_MAXUSER_ADDRESS)
+		panic("pmap_remove: uva not in range");
+	if (PMAP_IS_ACTIVE(pmap)) {
+		unsigned asid;
+
+		__asm volatile("mfc0 %0,$10; nop" : "=r"(asid));
+		asid = (MIPS_HAS_R4K_MMU) ? (asid & 0xff) : (asid & 0xfc0) >> 6;
+		if (asid != pmap->pm_asid) {
+			panic("inconsistency for active TLB flush: %d <-> %d",
+			    asid, pmap->pm_asid);
+		}
+	}
+#endif
+	asid = pmap->pm_asid; 
+	needflush = (pmap->pm_asidgen == pmap_asid_generation);
+	while (sva < eva) {
+		nssva = avr32_trunc_seg(sva) + NBSEG;
+		if (nssva == 0 || nssva > eva)
+			nssva = eva;
+		/*
+		 * If VA belongs to an unallocated segment,
+		 * skip to the next segment boundary.
+		 */
+		if (!(pte = pmap_segmap(pmap, sva))) {
+			sva = nssva;
+			continue;
+		}
+		/*
+		 * Invalidate every valid mapping within this segment.
+		 */
+		pte += (sva >> PGSHIFT) & (NPTEPG - 1);
+		for (; sva < nssva; sva += NBPG, pte++) {
+			entry = pte->pt_entry;
+			if (!(entry & AVR32_PTE_VALID))
+				continue;
+			if (entry & AVR32_PTE_WIRED)
+				pmap->pm_stats.wired_count--;
+			pmap->pm_stats.resident_count--;
+			pg = PHYS_TO_VM_PAGE(avr32_tlbpfn_to_paddr(entry));
+			if (pg)
+				pmap_remove_pv(pmap, sva, pg);
+			pte->pt_entry = 0; /* Invalidate pt entry */
+			/*
+			 * Flush the TLB for the given address.
+			 */
+			if (needflush) {
+				AVR32_TBIS(sva | asid);
+#ifdef DEBUG
+				remove_stats.flushes++;
+#endif
+			}
+		}
+	}
 }
 
 void
@@ -236,21 +404,86 @@ pmap_copy_page(paddr_t src, paddr_t dst)
 void
 pmap_page_protect(struct vm_page *pg, vm_prot_t prot)
 {
+	pv_entry_t pv, npv;
+	vaddr_t va;
 
-	panic("pmap_page_protect: notyet");
+#ifdef DEBUG
+	if ((pmapdebug & (PDB_FOLLOW|PDB_PROTECT)) ||
+	    (prot == VM_PROT_NONE && (pmapdebug & PDB_REMOVE)))
+		printf("pmap_page_protect(%lx, %x)\n",
+		    (u_long)VM_PAGE_TO_PHYS(pg), prot);
+#endif
+	switch (prot) {
+	case VM_PROT_READ|VM_PROT_WRITE:
+	case VM_PROT_ALL:
+		panic("pmap_page_protect: VM_PROT_READ|VM_PROT_WRITE or VM_PROT_ALL");
+		break;
+
+	/* copy_on_write */
+	case VM_PROT_READ:
+	case VM_PROT_READ|VM_PROT_EXECUTE:
+		panic("pmap_page_protect: VM_PROT_READ|VM_PROT_EXECUTE");
+		pv = pg->mdpage.pvh_list;
+		/*
+		 * Loop over all current mappings setting/clearing as appropos.
+		 */
+		if (pv->pv_pmap != NULL) {
+			for (; pv; pv = pv->pv_next) {
+				va = pv->pv_va;
+				pmap_protect(pv->pv_pmap, va, va + PAGE_SIZE,
+				    prot);
+				pmap_update(pv->pv_pmap);
+			}
+		}
+		break;
+
+	/* remove_all */
+	default:
+		pv = pg->mdpage.pvh_list;
+		if (pv->pv_pmap != NULL) {
+			for (npv = pv; npv; npv = npv->pv_next) {
+				pmap_remove(npv->pv_pmap, npv->pv_va, npv->pv_va + PAGE_SIZE);
+				pmap_update(npv->pv_pmap);
+			}
+		}
+	}
 }
 
 void 
 pmap_kremove(vaddr_t va, vsize_t len)
 {
-	panic("pmap_kremove: notyet");
+	pt_entry_t *pte;
+	vaddr_t eva;
+	u_int entry;
+	
+
+#ifdef DEBUG
+	if (pmapdebug & (PDB_FOLLOW|PDB_REMOVE))
+		printf("pmap_kremove(%lx, %lx)\n", va, len);
+#endif
+
+	pte = kvtopte(va);
+	eva = va + len;
+	for (; va < eva; va += PAGE_SIZE, pte++) {
+		entry = pte->pt_entry;
+		if (!avr32_pte_v(entry)) {
+			continue;
+		}
+#ifdef notyet
+#ifndef sbmips	/* XXX XXX if (dcache_is_virtual) - should also check icache virtual && EXEC mapping */
+			mips_dcache_wbinv_range(va, PAGE_SIZE);
+#endif
+#endif
+		avr32_tbis(va | AVR32_PG_VALID, pte->pt_entry);
+		pte->pt_entry &= ~AVR32_PTE_VALID;
+	}
 }
 
 void
 pmap_kenter_pa(vaddr_t va, paddr_t pa, vm_prot_t prot)
 {
-	u_int tlblo;
-	u_int tlbhi;
+	u_int tlbelo;
+	u_int tlbehi;
 	pt_entry_t *pte;
 
 #ifdef DEBUG
@@ -261,24 +494,24 @@ pmap_kenter_pa(vaddr_t va, paddr_t pa, vm_prot_t prot)
 	if (!PAGE_IS_MANAGED(pa))
 		panic("pmap_kenter_pa: page not managed: %p", (void *) pa);
 
-	tlbhi = avr32_vaddr_to_tlbvpn(va)
-	      | AVR32_PG_VALID;
+	tlbehi = avr32_vaddr_to_tlbvpn(va)
+		| AVR32_PG_VALID;
 
-	tlblo = avr32_paddr_to_tlbpfn(pa)
-	      | AVR32_PG_SIZE_4K
-	      | AVR32_PG_GLOBAL 
-	      | AVR32_PG_CACHED
-	      | AVR32_PG_DIRTY;
+	tlbelo = avr32_paddr_to_tlbpfn(pa) 
+		| AVR32_PG_SIZE_4K
+		| AVR32_PG_GLOBAL 
+		| AVR32_PG_CACHED 
+		| AVR32_PG_DIRTY; 
 
 	if (prot & VM_PROT_WRITE)
-		tlblo |= AVR32_PG_ACCESS_RW;
+		tlbelo |= AVR32_PG_ACCESS_RW;
 	else
-		tlblo |= AVR32_PG_ACCESS_RO;
+		tlbelo |= AVR32_PG_ACCESS_RO;
 
 	pte = kvtopte(va);
-	pte->pt_entry = tlblo;
+	pte->pt_entry = tlbelo | AVR32_PTE_VALID; 
 
-	MachTLBUpdate(tlbhi, tlblo);
+	MachTLBUpdate(tlbehi, tlbelo);
 }
 
 /*
@@ -293,9 +526,67 @@ pmap_deactivate(struct lwp *l)
 bool
 pmap_clear_modify(struct vm_page *pg)
 {
-	panic("pmap_clear_modify: notyet");
-}
+	struct pmap *pmap;
+	struct pv_entry *pv;
+	pt_entry_t *pte;
+	u_int *attrp;
+	vaddr_t va;
+	unsigned asid;
+	bool rv;
 
+#ifdef DEBUG
+	if (pmapdebug & PDB_FOLLOW)
+		printf("pmap_clear_modify(%lx)\n", (u_long)VM_PAGE_TO_PHYS(pg));
+#endif
+	attrp = &pg->mdpage.pvh_attrs;
+	rv = *attrp & PV_MODIFIED;
+	*attrp &= ~PV_MODIFIED;
+	if (!rv) {
+		return rv;
+	}
+	pv = pg->mdpage.pvh_list;
+	if (pv->pv_pmap == NULL) {
+		return true;
+	}
+
+	/*
+	 * remove write access from any pages that are dirty
+	 * so we can tell if they are written to again later.
+	 * flush the VAC first if there is one.
+	 */
+
+	for (; pv; pv = pv->pv_next) {
+		pmap = pv->pv_pmap;
+		va = pv->pv_va;
+		if (pmap == pmap_kernel()) {
+			pte = kvtopte(va);
+			asid = 0;
+		} else {
+			pte = pmap_segmap(pmap, va);
+			KASSERT(pte);
+			pte += ((va >> PGSHIFT) & (NPTEPG - 1));
+			asid = pmap->pm_asid << AVR32_TLB_PID_SHIFT;
+		}
+		if ((pte->pt_entry & AVR32_PG_DIRTY) == 0) {
+			continue;
+		}
+#ifdef notyet
+		if (MIPS_HAS_R4K_MMU) {
+			if (PMAP_IS_ACTIVE(pmap)) {
+				mips_dcache_wbinv_range(va, PAGE_SIZE);
+			} else {
+				mips_dcache_wbinv_range_index(va, PAGE_SIZE);
+			}
+		}
+#endif
+
+		pte->pt_entry &= ~AVR32_PG_DIRTY;
+		if (pmap->pm_asidgen == pmap_asid_generation) {
+			avr32_tbis(va | asid, pte->pt_entry);
+		}
+	}
+	return true;
+}
 void
 pmap_activate(struct lwp *l)
 {	
@@ -326,7 +617,7 @@ pmap_enter(pmap_t pmap, vaddr_t va, paddr_t pa, vm_prot_t prot, int flags)
 	unsigned asid;
 	bool wired = (flags & PMAP_WIRED) != 0;
 
-#ifdef DEBUG
+#ifdef DEBUG 
 	if (pmapdebug & (PDB_FOLLOW|PDB_ENTER))
 		printf("pmap_enter(%p, %lx, %lx, %x, %x)\n",
 		    pmap, va, (u_long)pa, prot, wired);
@@ -352,31 +643,18 @@ pmap_enter(pmap_t pmap, vaddr_t va, paddr_t pa, vm_prot_t prot, int flags)
 		panic("pmap_enter: prot");
 #endif /* PARANOIDDIAG */
 	pg = PHYS_TO_VM_PAGE(pa);
+	npte = pte_prot(pmap, prot) | AVR32_PG_CACHED | AVR32_PG_SIZE_4K | AVR32_PTE_VALID;
 
 	if (pg) {
-		int *attrs = &pg->mdpage.pvh_attrs;
+		u_int *attrs = &pg->mdpage.pvh_attrs;
 
 		/* Set page referenced/modified status based on flags */
 		if (flags & VM_PROT_WRITE)
 			*attrs |= PV_MODIFIED | PV_REFERENCED;
 		else if (flags & VM_PROT_ALL)
 			*attrs |= PV_REFERENCED;
-		if (!(prot & VM_PROT_WRITE))
-			/*
-			 * If page is not yet referenced, we could emulate this
-			 * by not setting the page valid, and setting the
-			 * referenced status in the TLB fault handler, similar
-			 * to how page modified status is done for UTLBmod
-			 * exceptions.
-			 */
-			npte = avr32_pte_ropage_bit();
-		else {
-			if (*attrs & PV_MODIFIED) {
-				npte = avr32_pte_rwpage_bit();
-			} else {
-				npte = avr32_pte_cwpage_bit();
-			}
-		}
+		if (*attrs & PV_MODIFIED)
+			npte |= AVR32_PG_DIRTY;
 #ifdef DEBUG
 		enter_stats.managed++;
 #endif /* DEBUG */
@@ -427,7 +705,7 @@ pmap_enter(pmap_t pmap, vaddr_t va, paddr_t pa, vm_prot_t prot, int flags)
 		pte = kvtopte(va);
 
 		npte |= avr32_paddr_to_tlbpfn(pa)
-		      | AVR32_PG_GLOBAL | AVR32_PG_SIZE_4K;
+		      | AVR32_PG_GLOBAL; 
 #if notyet
 		if (MIPS_HAS_R4K_MMU)
 			npte |= avr32_paddr_to_tlbpfn(pa) | AVR32_PG_GLOBAL;
@@ -453,8 +731,8 @@ pmap_enter(pmap_t pmap, vaddr_t va, paddr_t pa, vm_prot_t prot, int flags)
 		/*
 		 * Update the same virtual address entry.
 		 */
-
-		MachTLBUpdate(tlbehi = va | AVR32_PG_VALID, npte);
+		MachTLBUpdate(tlbehi = va | AVR32_PG_VALID | pmap->pm_asid,
+			npte);
 		return 0;
 	}
 	if (!(pte = pmap_segmap(pmap, va))) {
@@ -478,9 +756,10 @@ pmap_enter(pmap_t pmap, vaddr_t va, paddr_t pa, vm_prot_t prot, int flags)
 	    }
 #endif
 	}
-/* Done after case that may sleep/return. */
-	if (pg)
+	/* Done after case that may sleep/return. */
+	if (pg)	{
 		pmap_enter_pv(pmap, va, pg, &npte);
+	}
 
 	pte += (va >> PGSHIFT) & (NPTEPG - 1);
 
@@ -489,7 +768,7 @@ pmap_enter(pmap_t pmap, vaddr_t va, paddr_t pa, vm_prot_t prot, int flags)
 	 * Assume uniform modified and referenced status for all
 	 * MIPS pages in a MACH page.
 	 */
-	npte |= avr32_paddr_to_tlbpfn(pa) | AVR32_PG_SIZE_4K;
+	npte |= avr32_paddr_to_tlbpfn(pa);
 #if notyet
 	if (MIPS_HAS_R4K_MMU)
 		npte |= avr32_paddr_to_tlbpfn(pa);
@@ -523,8 +802,8 @@ pmap_enter(pmap_t pmap, vaddr_t va, paddr_t pa, vm_prot_t prot, int flags)
 	}
 #endif
 
-	asid = pmap->pm_asid << AVR32_TLB_PID_SHIFT;
-	if (avr32_pte_v(pte->pt_entry) &&
+	asid = pmap->pm_asid;
+	if ((pte->pt_entry & AVR32_PTE_VALID) &&
 	    avr32_tlbpfn_to_paddr(pte->pt_entry) != pa) {
 		pmap_remove(pmap, va, va + NBPG);
 #ifdef DEBUG
@@ -532,12 +811,13 @@ pmap_enter(pmap_t pmap, vaddr_t va, paddr_t pa, vm_prot_t prot, int flags)
 #endif
 	}
 
-	if (!avr32_pte_v(pte->pt_entry))
+	if (!(pte->pt_entry & AVR32_PTE_VALID))
 		pmap->pm_stats.resident_count++;
 	pte->pt_entry = npte;
 
 	if (pmap->pm_asidgen == pmap_asid_generation)
-		MachTLBUpdate(va | asid | AVR32_PG_VALID, npte);
+		MachTLBUpdate(va | asid | AVR32_PG_VALID | pmap->pm_asid,
+			 npte | AVR32_PG_DIRTY);
 
 #if notyet
 #ifdef MIPS3_PLUS	/* XXX mmu XXX */
@@ -783,7 +1063,107 @@ pmap_create(void)
 void
 pmap_protect(pmap_t pmap, vaddr_t sva, vaddr_t eva, vm_prot_t prot)
 {
-	panic("pmap_protect: notyet");
+	vaddr_t nssva;
+	pt_entry_t *pte;
+	unsigned entry;
+	u_int p;
+	unsigned asid, needupdate;
+
+	if (sva <= 0x1074 && eva >= 0x1074) {
+		
+		panic("pmap_protect(sva: %x, eva: %x, prot: %x): tlb_prot", sva, eva, prot);
+	}
+#ifdef DEBUG
+	if (pmapdebug & (PDB_FOLLOW|PDB_PROTECT))
+		printf("pmap_protect(%p, %lx, %lx, %x)\n",
+		    pmap, sva, eva, prot);
+#endif
+	if ((prot & VM_PROT_READ) == VM_PROT_NONE) {
+		pmap_remove(pmap, sva, eva);
+		return;
+	}
+	
+	p = pte_prot(pmap, prot);
+
+	if (pmap == pmap_kernel()) {
+		/*
+		 * Change entries in kernel pmap.
+		 * This will trap if the page is writable (in order to set
+		 * the dirty bit) even if the dirty bit is already set. The
+		 * optimization isn't worth the effort since this code isn't
+		 * executed much. The common case is to make a user page
+		 * read-only.
+		 */
+#ifdef PARANOIADIAG
+		if (sva < VM_MIN_KERNEL_ADDRESS || eva >= virtual_end)
+			panic("pmap_protect: kva not in range");
+#endif
+		pte = kvtopte(sva);
+		for (; sva < eva; sva += NBPG, pte++) {
+			entry = pte->pt_entry;
+			if (!(entry & AVR32_PTE_VALID))
+				continue;
+#ifdef notyet
+			if (MIPS_HAS_R4K_MMU && entry & mips_pg_m_bit())
+				mips_dcache_wb_range(sva, PAGE_SIZE);
+#endif
+			entry &= ~(AVR32_PG_ACCESS_RW);
+			entry |= p;
+			pte->pt_entry = entry;
+			MachTLBUpdate(sva | pmap->pm_asid, entry);
+		}
+		return;
+	}
+
+#ifdef PARANOIADIAG
+	if (eva > VM_MAXUSER_ADDRESS)
+		panic("pmap_protect: uva not in range");
+	if (PMAP_IS_ACTIVE(pmap)) {
+		unsigned asid;
+
+		__asm volatile("mfc0 %0,$10; nop" : "=r"(asid));
+		asid = (MIPS_HAS_R4K_MMU) ? (asid & 0xff) : (asid & 0xfc0) >> 6;
+		if (asid != pmap->pm_asid) {
+			panic("inconsistency for active TLB update: %d <-> %d",
+			    asid, pmap->pm_asid);
+		}
+	}
+#endif
+	asid = pmap->pm_asid;
+	needupdate = (pmap->pm_asidgen == pmap_asid_generation);
+	while (sva < eva) {
+		nssva = avr32_trunc_seg(sva) + NBSEG;
+		if (nssva == 0 || nssva > eva)
+			nssva = eva;
+		/*
+		 * If VA belongs to an unallocated segment,
+		 * skip to the next segment boundary.
+		 */
+		if (!(pte = pmap_segmap(pmap, sva))) {
+			sva = nssva;
+			continue;
+		}
+		/*
+		 * Change protection on every valid mapping within this segment.
+		 */
+		pte += (sva >> PGSHIFT) & (NPTEPG - 1);
+		for (; sva < nssva; sva += NBPG, pte++) {
+			entry = pte->pt_entry;
+			if (!(entry & AVR32_PTE_VALID))
+				continue;
+#ifdef notyet
+			if (MIPS_HAS_R4K_MMU && entry & mips_pg_m_bit())
+				mips_dcache_wbinv_range_index(sva, PAGE_SIZE);
+#endif
+			entry = ((entry & ~AVR32_PG_ACCESS_RW) | p);
+			pte->pt_entry = entry;
+			/*
+			 * Update the TLB if the given address is in the cache.
+			 */
+			if (needupdate)
+				MachTLBUpdate(sva | asid, entry);
+		}
+	}
 }
 
 bool 
@@ -849,7 +1229,7 @@ avr32_unmap_poolpage(vaddr_t va)
  */
 void
 pmap_enter_pv(pmap_t pmap, vaddr_t va, struct vm_page *pg, u_int *npte)
-{	
+{
 	pv_entry_t pv, npv;
 
 	pv = pg->mdpage.pvh_list;
@@ -876,7 +1256,6 @@ again:
 		pv->pv_pmap = pmap;
 		pv->pv_next = NULL;
 	} else {
-		panic("pmap_enter_pv: pv->pmap != NULL: notyet");
 #if notyet
 		if (mips_cache_virtual_alias) {
 			/*
@@ -960,8 +1339,8 @@ again:
 					} else
 						entry = 0;
 				}
-				if (!mips_pg_v(entry) ||
-				    mips_tlbpfn_to_paddr(entry) !=
+				if (!avr32_pte_v(entry) ||
+				    avr32_tlbpfn_to_paddr(entry) !=
 				    VM_PAGE_TO_PHYS(pg))
 					printf(
 		"pmap_enter: found va %lx pa %lx in pv_table but != %x\n",
@@ -991,6 +1370,76 @@ again:
 	}
 
 }
+
+/*
+ * Remove a physical to virtual address translation.
+ * If cache was inhibited on this page, and there are no more cache
+ * conflicts, restore caching.
+ * Flush the cache if the last page is removed (should always be cached
+ * at this point).
+ */
+void
+pmap_remove_pv(pmap_t pmap, vaddr_t va, struct vm_page *pg)
+{
+	pv_entry_t pv, npv;
+	int last;
+
+#ifdef DEBUG
+	if (pmapdebug & (PDB_FOLLOW|PDB_PVENTRY))
+		printf("pmap_remove_pv(%p, %lx, %lx)\n", pmap, va,
+		    (u_long)VM_PAGE_TO_PHYS(pg));
+#endif
+
+	pv = pg->mdpage.pvh_list;
+
+	/*
+	 * If it is the first entry on the list, it is actually
+	 * in the header and we must copy the following entry up
+	 * to the header.  Otherwise we must search the list for
+	 * the entry.  In either case we free the now unused entry.
+	 */
+
+	last = 0;
+	if (pmap == pv->pv_pmap && va == pv->pv_va) {
+		npv = pv->pv_next;
+		if (npv) {
+
+			/*
+			 * Copy current modified and referenced status to
+			 * the following entry before copying.
+			 */
+
+			npv->pv_flags |=
+			    pv->pv_flags & (PV_MODIFIED | PV_REFERENCED);
+			*pv = *npv;
+			pmap_pv_free(npv);
+		} else {
+			pv->pv_pmap = NULL;
+			last = 1;	/* Last mapping removed */
+		}
+#ifdef DEBUG
+		remove_stats.pvfirst++;
+#endif
+	} else {
+		for (npv = pv->pv_next; npv; pv = npv, npv = npv->pv_next) {
+#ifdef DEBUG
+			remove_stats.pvsearch++;
+#endif
+			if (pmap == npv->pv_pmap && va == npv->pv_va)
+				break;
+		}
+		if (npv) {
+			pv->pv_next = npv->pv_next;
+			pmap_pv_free(npv);
+		}
+	}
+
+#ifdef notyet /* XXXAVR32 */
+	if (MIPS_HAS_R4K_MMU && last != 0)
+		mips_dcache_wbinv_range_index(va, PAGE_SIZE);
+#endif
+}
+
 
 /******************** misc. functions ********************/
 

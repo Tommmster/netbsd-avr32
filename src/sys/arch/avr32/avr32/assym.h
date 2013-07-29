@@ -44,21 +44,21 @@
 
 #define VM_MIN_KERNEL_ADDRESS   0xC0000000
 
-#define AVR32_PG_VPN	0xfffffc00
-#define AVR32_PG_VALID	0x00000200
-#define AVR32_PG_INSTR	0x00000100
-#define AVR32_PG_ASID	0x000000ff
+#define AVR32_PG_VPN		0xfffffc00
+#define AVR32_PG_VALID		0x00000200
+#define AVR32_PG_INSTR		0x00000100
+#define AVR32_PG_ASID		0x000000ff
 
-#define AVR32_PTE_VALID	0x80000000
-#define AVR32_PTE_WIRED	0x40000000
-#define AVR32_PG_CACHED	0x00000200
-#define AVR32_PG_GLOBAL	0x00000100
-#define AVR32_PG_BUFF	0x00000080
-#define AVR32_PG_ACCESS	0x00000070
-#define AVR32_PG_SIZE	0x0000000c
-#define AVR32_PG_DIRTY	0x00000002
-#define AVR32_PG_WTHRU	0x00000001
-
+#define AVR32_PTE_VALID		0x80000000
+#define AVR32_PTE_WIRED		0x40000000
+#define AVR32_PG_CACHED		0x00000200
+#define AVR32_PG_GLOBAL		0x00000100
+#define AVR32_PG_BUFF		0x00000080
+#define AVR32_PG_ACCESS		0x00000070
+#define AVR32_PG_SIZE		0x0000000c
+#define AVR32_PG_DIRTY		0x00000002
+#define AVR32_PG_WTHRU		0x00000001
+#define AVR32_PG_SIZE_4K	0x00000004
 /*
  * Byte offsets related to struct lwp.
  */
@@ -81,7 +81,7 @@
 #define U_PCB_ONFAULT	64	/* offsetof(struct pcb, pcb_onfault) */ 
 
 /*
- * Byte offsets related to pcb_csontext.
+ * Byte offsets related to pcb_context.
  */
 #define SF_REG_SR	0
 #define SF_REG_LR	4
@@ -94,3 +94,12 @@
 #define SF_REG_R2	32
 #define SF_REG_R1	36
 #define SF_REG_R0	40
+
+#define KERNFRAME_SIZ	(8 + 16 * 4 + 8)/* sizeof(struct kernframe) */
+
+#define TF_BASE	8	/* offsetof(struct kernframe, cf_frame) */
+
+#define FRAME_SIZ	( 16 * 4 + 8)	/* sizeof (struct frame)  */
+
+#define L_PROC	292 	/* offsetof(struct lwp, l_proc) */
+#define P_MD_SYSCALL 484	/* offsetof(struct proc, p_md.md_syscall) */

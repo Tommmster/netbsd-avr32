@@ -59,16 +59,11 @@ struct mdproc {
 	void	(*md_syscall)(struct lwp *, u_int, u_int, u_int);
 };
 
-/* md_flags */
-#define	MDP_FPUSED	0x0001	/* floating point coprocessor used */
-
 /*
  * AVR32 trapframe
  */
 struct frame {
-	avr32_reg_t f_regs[16];
-	u_int32_t f_ppl;	/* previous priority level */
-	int32_t f_pad;		/* for 8 byte aligned */
+	avr32_reg_t f_regs[17];	
 };
 
 #endif /* !_AVR32_PROC_H_ */

@@ -32,22 +32,22 @@
 #ifndef _AVR32_REG_H_
 #define _AVR32_REG_H_
 
-#define _R0	0
-#define _R1	1
-#define _R2	2
-#define _R3	3
-#define _R4	4
-#define _R5	5
-#define _R6	6
-#define _R7	7
-#define _R8	8
-#define _R9	9
-#define _R10	10
-#define _R11	11
-#define _R12	12
-#define _R_SP	13
-#define _R_LR	14
-#define _R_PC	15
-#define _R_SR	16
+#define _R_R0	16
+#define _R_R1	15
+#define _R_R2	14
+#define _R_R3	13
+#define _R_R4	12
+#define _R_R5	11
+#define _R_R6	10	
+#define _R_R7	9
+#define _R_R8	8
+#define _R_R9	7
+#define _R_R10	6
+#define _R_R11	5
+#define _R_R12	4
+#define _R_SP	3
+#define _R_LR	2
+#define _R_PC	1
+#define _R_SR	0
 
 #endif /* !_AVR32_REG_H_ */

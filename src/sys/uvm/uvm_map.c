@@ -1750,7 +1750,6 @@ uvm_map_lookup_entry(struct vm_map *map, vaddr_t address,
 
 	UVMMAP_EVCNT_INCR(mlk_call);
 	if (address >= cur->start) {
-
 		/*
 		 * go from hint to end of list.
 		 *
@@ -1775,7 +1774,6 @@ uvm_map_lookup_entry(struct vm_map *map, vaddr_t address,
 		if (map->nentries > 15)
 			use_tree = true;
 	} else {
-
 		/*
 		 * invalid hint.  use tree.
 		 */
@@ -1796,6 +1794,7 @@ uvm_map_lookup_entry(struct vm_map *map, vaddr_t address,
 			goto failed;
 		}
 	}
+
 
 	/*
 	 * search linearly
@@ -1826,7 +1825,7 @@ got:
 		cur = cur->next;
 	}
 	*entry = cur->prev;
-failed:
+failed:	
 	SAVE_HINT(map, map->hint, *entry);
 	UVMHIST_LOG(maphist,"<- failed!",0,0,0,0);
 	KDASSERT((*entry) == &map->header || (*entry)->end <= address);
@@ -4135,7 +4134,6 @@ uvmspace_exec(struct lwp *l, vaddr_t start, vaddr_t end)
 	 */
 
 	if (ovm->vm_refcnt == 1) {
-
 		/*
 		 * if p is the only process using its vmspace then we can safely
 		 * recycle that vmspace for the program that is being exec'd.
@@ -4160,7 +4158,6 @@ uvmspace_exec(struct lwp *l, vaddr_t start, vaddr_t end)
 		/*
 		 * now unmap the old program
 		 */
-
 		pmap_remove_all(map->pmap);
 		uvm_unmap(map, vm_map_min(map), vm_map_max(map));
 		KASSERT(map->header.prev == &map->header);
@@ -4173,7 +4170,6 @@ uvmspace_exec(struct lwp *l, vaddr_t start, vaddr_t end)
 		vm_map_setmin(map, start);
 		vm_map_setmax(map, end);
 	} else {
-
 		/*
 		 * p's vmspace is being shared, so we can't reuse it for p since
 		 * it is still being used for others.   allocate a new vmspace
@@ -5211,7 +5207,7 @@ uvm_unmap1(struct vm_map *map, vaddr_t start, vaddr_t end, int flags)
 	vm_map_unlock(map);
 	uvm_mapent_unreserve(map, &umr);
 
-	if (dead_entries != NULL)
+	if (dead_entries != NULL) 
 		uvm_unmap_detach(dead_entries, 0);
 
 	UVMHIST_LOG(maphist, "<- done", 0,0,0,0);

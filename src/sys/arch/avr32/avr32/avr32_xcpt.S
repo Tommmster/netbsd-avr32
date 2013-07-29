@@ -31,13 +31,14 @@
 
 #include <avr32/asm.h>
 #include <avr32/cpuregs.h>
+#include <avr32/avr32_param.h>
 
 #include "assym.h"
 
 	.section .evba.text,"ax",@progbits
 	.align 2
 exception_vectors:
-	bral	handle_critical /* unrecoverable */
+	bral	handle_unrecoverable /* unrecoverable */
 	.align 2
 	bral	handle_critical /* tlb multiple hit */
 	.align 2
@@ -47,7 +48,7 @@ exception_vectors:
 	.align 2
 	bral	handle_critical /* NMI */
 	.align 2
-	bral	instruction_address_handler /* Instruction address */
+	bral	handle_critical /* Instruction address */
 	.align 2
 	bral	handle_critical /* ITLB Protection */
 	.align 2
@@ -76,7 +77,7 @@ exception_vectors:
 	.section .tlbx.evba.text,"ax",@progbits
 	.globl avr32_itlb_miss
 avr32_itlb_miss:
-	bral	handle_critical
+	rjmp	avr32_tlb_miss
 
 	.section .tlbr.evba.text,"ax",@progbits
 	.globl avr32_dtlb_rmiss
@@ -103,47 +104,54 @@ avr32_dtlb_wmiss:
 	.align	1
 
 avr32_tlb_miss:
-	pushm	r8-r9,r10,r11,r12,lr
-	mfsr	r12, SR_TLBEAR	/* Faulting address. */
-	mfsr	r11, SR_RAR_EX	/* Program counter. */
-	mfsr	r10, SR_ECR	/* EVBA offset. */
+	pushm	r0-r3
+
+	mfsr	r3, SR_TLBEAR	/* Faulting address. */
 	nop
 
-	lddpc	r11, L_VM_MIN_KERNEL_ADDRESS
-	cp.w	r12, r11
+	lddpc	r2, L_VM_MIN_KERNEL_ADDRESS
+	cp.w	r3, r2
 	brlo	usertlbmiss
 
-	lddpc	r11, L_VM_MIN_KERNEL_ADDRESS
-	sub	r12, r11
+	lddpc	r2, L_VM_MIN_KERNEL_ADDRESS
+	sub	r3, r2
 
 	/*
 	 * Failing VPN should be lower than Sysmapsize.
 	 */
-	lsr	r12, r12, PGSHIFT
-	lda.w	r11, Sysmapsize
-	ld.w	r11, r11[0]
+	lsr	r3, r3, PGSHIFT
+	lda.w	r2, Sysmapsize
+	ld.w	r2, r2[0]
 
-	cp.w	r12, r11	
+	cp.w	r3, r2
 	brge	out_of_range
 
 	/* Retrieve the PTE. */
-	lda.w	r11, Sysmap	
-	ld.w	r11, r11[0]
-	add	r11, r11, r12 << 2 
-	ld.w	r12, r11[0]
+	lda.w	r2, Sysmap	
+	ld.w	r2, r2[0]
+	add	r2, r2, r3 << 2 
+	ld.w	r3, r2[0]
 
-	andh	r12, hi(~(AVR32_PTE_WIRED | AVR32_PTE_VALID)) 
-	orl	r12, lo(AVR32_PG_DIRTY) /* XXX Needs further rework */
+	/* Check for sw valid bit */
+	 
+	mov	r2, r3
+	andh	r2, hi(AVR32_PTE_VALID), COH
+	cp.w	r2, 0 
+	breq	avr32_kern_gen_exception
 
-	mtsr	SR_TLBELO, r12
+	andh	r3, hi(~(AVR32_PTE_WIRED | AVR32_PTE_VALID)) 
+	orl	r3, lo(AVR32_PG_DIRTY) /* XXX Needs further rework */
+
+	mtsr	SR_TLBELO, r3
 	nop
 	nop
 
-	mfsr	r11, SR_TLBEHI
+	mfsr	r2, SR_TLBEHI
 	nop
-	andl	r11, lo(AVR32_PG_VPN)
-	orl	r11, lo(AVR32_PG_VALID)
-	mtsr	SR_TLBEHI, r11
+	andl	r2, lo(AVR32_PG_VPN | AVR32_PG_ASID)
+	orl	r2, lo(AVR32_PG_VALID)
+	mtsr	SR_TLBEHI, r2
+	sub	pc, -2 /* XXXAVR32 Flush pipeline */
 	nop	
 	nop
 
@@ -151,7 +159,7 @@ avr32_tlb_miss:
 	nop
 	nop
 
-doeret: popm	r8-r9,r10,r11,r12,lr	
+doeret: popm	r0-r3
 	rete
 
 out_of_range:
@@ -160,233 +168,223 @@ out_of_range:
 L_OUT_OF_RANGE_MSG:
 	.asciz "trap: index out of range\n"
 
+/*
+ *	usertlbmiss(p0addr)
+ */
 	.align 1
 usertlbmiss:
-	/* Address in P0. */
-	mov	r11, r12
-	lsr	r11, SEGSHIFT	
-	lsl	r11, 2	
+#ifdef notyet
+	lda.w	r12, L_AVR32_USERTLBMISS
+	rcall	panic
+#endif 
+	/* r3 contains an address in P0. */
 
-	lda.w	r10, segbase
-	ld.w	r10, r10[0]
-		
-	add	r10, r11
-	ld.w	r9, r10[0]
+	/* Compute segment table index */
+	mov	r2, r3
+	lsr	r2, SEGSHIFT	
+	lsl	r2, 2	
 
-	cp.w	r9, 0
+	/* Get pointer to the segment map */
+	lda.w	r1, segbase
+	ld.w	r1, r1[0]
+	add	r1, r2
+
+	/* Get the segment map. Detect invalid table entries */
+	ld.w	r0, r1[0]
+	cp.w	r0, 0
 	breq	avr32_slow_fault
 
-	ld.w	r9, r9[0]
-	mov	r11, r12
+	/* Compute the segment map index */
+	mov	r2, r3
+	lsl	r2, PGSHIFT - 2
+	andl	r2, lo(NPTEPG - 1) << 2), COH
 
-	lsl	r11, PGSHIFT - 2
-	mov	r10, (NPTEPG - 1) << 2	
-	and	r11, r10
+	/* Get pointer to the segment map */
+	add	r0, r2
 
-	add	r9, r11
-	ld.w	r9, r9[0]
+	/* Get page PTE. Do not load invalid entries */
+	ld.w	r0, r0[0]
+	cp.w	r0, 0
+	breq	avr32_slow_fault
 
-	andh	r9, hi(~(AVR32_PTE_WIRED | AVR32_PTE_VALID)) 
-	orl	r9, lo(AVR32_PG_DIRTY) /* XXX Needs further rework */
-	mtsr	SR_TLBELO, r9
+	/* Update the TLB */
+	andh	r0, hi(~(AVR32_PTE_WIRED | AVR32_PTE_VALID)) 
+	orl	r0, lo(AVR32_PG_DIRTY) /* XXX Needs further rework */
+	mtsr	SR_TLBELO, r0
 
-	mfsr	r11, SR_TLBEHI
+#if 0
+	mfsr	r2, SR_TLBEHI
 	nop
-	andl	r11, 0xf0ff	# Keep the asid
-	orl	r11, lo(AVR32_PG_VALID)
-	mtsr	SR_TLBEHI, r11
+	andl	r2, 0xf0ff	# Keep the asid
+	orl	r2, lo(AVR32_PG_VALID)
+	mtsr	SR_TLBEHI, r2
 	nop	
-	nop
+#endif 
 	tlbw	
+	sub	pc, -2
+	nop
 
 	bral	doeret
 
+	.section .work.evba.text,"ax",@progbits
+	.globl	avr32_slow_fault
+	.align 1
 avr32_slow_fault:
-	/*
-	 *  Must call the trap function to handle this situation.
-	 *  Store context in the process pcb.
-	 *  STATUS (SR_STATUS), CAUSE(SR_ECR), Fault Adress (SR_TLBEAR), PC
-	 */
-	
-	/* Save execution context, then call trap. */
-	lda.w	r12, avr32_curlwp
-	ld.w	r12, r12[0]
-	ld.w	r12, r12[L_ADDR]	/* lwp->l_addr */
-	stm	r12, r0-r8,lr,sp
+	mfsr	r0, SR_RSR_EX
+	nop
 
-	/* Invoke the trap handler. */
-	mfsr	r12, SR_STATUS
-	mfsr	r11, SR_ECR
-	mfsr	r10, SR_TLBEAR
-	mov	r9, SR_RAR_EX 
-	mov	r8, sp
+	mov	r2, 0
+	orh	r2, hi(AVR32_STATUS_MKERN)
+	mov	r1, r0
+	andh	r1, hi(AVR32_STATUS_MMASK), COH
+	lda.w	r3, avr32_kern_gen_exception
+	cp.w	r1, r2
+	breq	1f
+
+	mov	r2, 0
+	orh	r2, hi(AVR32_STATUS_MUSER)
+	mov	r1, r0
+	andh	r1, hi(AVR32_STATUS_MMASK), COH
+	lda.w	r3, avr32_user_gen_exception
+	cp.w	r1, r2
+	breq	1f
+
+	mov	r2, 0
+	orh	r2, hi(AVR32_STATUS_MXCPT)
+	mov	r1, r0
+	andh	r1, hi(AVR32_STATUS_MMASK), COH
+	lda.w	r3, avr32_kern_gen_exception
+	cp.w	r1, r2
+	breq	1f
+
+	/* Unknown mode */
+	lda.w	r12, L_AVR32_SLOW_FAULT
+	mfsr	r11, SR_RSR_EX
+	nop
+	mfsr	r10, SR_RAR_EX
+	nop
+	pushm	r11
+	pushm	r10
+	rcall	panic
+	
+1:	icall	r3
+
+	.section .work.evba.text,"ax",@progbits
+	.globl	avr32_user_gen_exception
+	.align 1
+avr32_user_gen_exception:
+	popm	r0-r3
+	stmts	--sp, r0-lr
+	mfsr	r1, SR_RAR_EX
+	nop
+	st.w	--sp, r1
+
+	mfsr	r1, SR_RSR_EX
+	nop
+	st.w	--sp, r1
+
+#if 0
+	mov	sp, r0
+#endif 
+	mfsr	r12, SR_ECR
+	mfsr	r11, SR_TLBEAR
+	mov	r10, sp
+
+	/* Unmask exceptions */
+	mfsr	r0, SR_STATUS
+	andh	r0, hi(~AVR32_STATUS_EM), COH
+	mtsr	SR_STATUS, r0
+
 	rcall	trap
 
-	/* Now we return: restore the register values.*/
-	lda.w	r12, avr32_curlwp
-	ld.w	r12, r12[0]
-	ld.w	r12, r12[L_ADDR]	#lwp->l_addr
+	ld.w	r0, sp++
+	mtsr	SR_RSR_EX, r0
+	nop
 
-	ldm	r12, r0-r8,lr,sp
-	popm	r8-r9,r10-r12,lr	
+	ld.w	r0, sp++
+	mtsr	SR_RAR_EX, r0
+	nop
+	ldmts	sp++, r0-lr
+	
 	rete
+	
+	.section .work.evba.text,"ax",@progbits
+	.globl	avr32_kern_gen_exception
+	.align 1
+avr32_kern_gen_exception:
+	/* Create the kernframe in the stack and call trap */
+	pushm	r4-r7, r8-r9, r10, r11, r12, lr
+	mfsr	r0, SR_RAR_EX	
+	nop
+	st.w	--sp, r0
+
+	mfsr	r0, SR_RSR_EX 
+	nop
+	st.w	--sp, r0
+
+	/* Unmask exceptions */
+	mfsr	r0, SR_STATUS
+	andh	r0, hi(~AVR32_STATUS_EM), COH
+	mtsr	SR_STATUS, r0
+
+	mfsr	r12, SR_ECR
+	mfsr	r11, SR_TLBEAR
+	mov	r10, sp 
+	rcall	trap
+
+	/* 
+	 * Restore registers and return from the exception.
+	 */ 
+	ld.w	r0, sp++
+	mtsr	SR_RSR_EX, r0
+
+	ld.w	r1, sp++
+	mtsr	SR_RAR_EX, r1
+	popm	r0-r3, r4-r7, r8-r9, r10, r11, r12, lr
+
+	rete	
+	.size avr32_kern_gen_exception,.-avr32_kern_gen_exception
+
+L_AVR32_PANIC:
+	.asciz "scall panic: syscall returned"
+L_AVR32_MODE_PANIC:
+	.asciz "scall panic: Incorrect mode %x."
+L_AVR32_USERTLBMISS:
+	.asciz "usertlbmiss"
+
+L_AVR32_SLOW_FAULT_PANIC:
+	.asciz "avr32_slow_fault"
+
+L_AVR32_SLOW_FAULT:	
+	.asciz "Not user nor kernel mode  STATUS: %x. RAR_EX: %x"
+
+L_USER_GEN_EXCEPTION_MSG:
+	.asciz "avr32_user_gen_exception %p"	
+
+L_KERN_GEN_EXCEPTION_MSG:
+	.asciz "avr32_kern_gen_exception %p"
 
 	.align 2
 L_VM_MIN_KERNEL_ADDRESS:
 	.long VM_MIN_KERNEL_ADDRESS
 
 	.align 2
-handle_critical: 
+handle_unrecoverable:
 	mfsr	r12, SR_ECR
-	mfsr	r11, SR_RAR_EX
 	nop
-	rcall	handle_with_panic
-
-	.align 2
-supervisor_call_handler:
-	lda.w	r12, _inst_scall_msg
-	rcall	panic
-	rete
-_inst_scall_msg:
-	.string "inst.scall.text\n"
-	
-	.align 2
-multiple_tlbhit_handler:
-	lda.w	r12, _int_tlbmult_msg
-	rcall	panic
-	rete
-_int_tlbmult_msg:
-	.string "int.tlbmult.text\n"
-
-	.align 2
-databus_datafetch_handler:
-	lda.w	r12, _dbus_dfetch_msg
-	mfsr	r11, SR_BEAR
+	mfsr	r11, SR_STATUS
 	nop
-	rcall	panic	
-	rete
-_dbus_dfetch_msg:
-	.string "dbus.dfetch.text\n"
-
-	.align 2
-databus_instfetch_handler:
-	lda.w	r12, _dbus_ifetch_msg
-	rcall	panic
-	rete
-_dbus_ifetch_msg:
-	.string "dbus.ifetch.text\n"
-
-	.align 2
-external_nmi_handler:
-	lda.w	r12, _ext_nmi_msg
-	rcall	panic
-	rete
-_ext_nmi_msg:
-	.string "ext.nmi.text\n"
-
-	.align 2
-itlb_protection_handler:
-	lda.w	r12, _itlb_iprot_msg
-	rcall	panic
-	rete
-_itlb_iprot_msg:
-	.string "itlb.iprot.text\n"
-
-	.align 2
-breakpoint_handler:
-	lda.w	r12, _ocd_break_msg
-	rcall	panic
-	rete
-_ocd_break_msg:
-	.string "ocd.break.text\n"
-
-	.align 2
-illegal_opcode_handler:
-	lda.w	r12, _inst_opcode_msg
-	rcall	panic
-	rete
-_inst_opcode_msg:
-	.string "inst.opcode.text\n"
-
-	.align 2
-unimplemented_instruction_handler:
-	lda.w	r12, _inst_unimp_msg
-	rcall	panic
-	rete
-_inst_unimp_msg:
-	.string "inst.unimp.text\n"
-
-	.align 2
-privilege_violation_handler:
-	lda.w	r12, _inst_pviol_msg
-	rcall	panic
-	rete
-_inst_pviol_msg:
-	.string "inst.pviol.text\n"
-
-	.align 2
-copprocesor_absent_handler:
-	lda.w	r12, _inst_cop_msg
-	rcall	panic
-	rete
-_inst_cop_msg:
-	.string "inst.cop.text\n"
-
-	.align 2
-read_data_address_handler:
-	lda.w	r12, _dtlb_daddressr_msg
-	rcall	panic
-	rete
-_dtlb_daddressr_msg:
-	.string "dtlb.daddressr.text\n"
-
-	.align 2
-write_data_address_handler:
-	lda.w	r12, _dtlb_daddressw_msg
-	rcall	panic
-	rete
-_dtlb_daddressw_msg:
-	.string "dtlb.daddressw.text\n"
-
-	.align 2
-read_dtlb_protection_handler:
-	lda.w	r12, _dtlb_protr_msg
-	rcall	panic
-	rete
-_dtlb_protr_msg:
-	.string "dtlb.protr.text\n"
-
-	.align 2
-write_dtlb_protection_handler:
-	lda.w	r12, _dtlb_protw_msg
-	rcall	panic
-	rete
-_dtlb_protw_msg:
-	.string "dtlb.protw.text\n"	
-
-	.align 2
-dtlb_modified_handler:
-	lda.w	r12, _dtlb_modif_msg
-	rcall	panic
-	rete
-_dtlb_modif_msg:
-	.string "dtlb.modif.text\n"
-
-	.align 2
-instruction_address_handler:
-	pushm	r10-r12, lr
-	mfsr	r12, SR_ECR		/* Faulting address */
-	mfsr	r11, SR_RAR_EX		/* Program counter */
+	mfsr	r10, SR_RSR_EX
 	nop
-	rcall 	handle_with_panic	/* Does not return */
-	popm	r10-r12, lr	
-	rete
+	mov	r9, r8
+	nop
+	rcall handle_with_panic2
 
 	.section .scall.evba.text, "ax",@progbits
 	.globl	scall_handler
-	.align 1
 scall_handler:
-	bral	handle_critical
+	mov	r9, sp
+	bral	avr32_syscall
 
 	.section .irq.text,"ax",@progbits
 	.global avr32_intr_0
@@ -468,3 +466,71 @@ avr32_intr_3:
 	ldmts	sp++, r0-lr
 	sub	sp, -4
 	rete
+
+
+	.section .work.evba.text,"ax",@progbits
+	.align 2
+	.global handle_critical
+handle_critical: 
+	mfsr	r12, SR_ECR
+	nop
+	mfsr	r11, SR_RAR_EX
+	nop
+	mfsr	r10, SR_BEAR
+	nop
+	rcall	handle_with_panic
+
+	.align 2
+	.global avr32_syscall
+avr32_syscall: 
+	stmts	--sp, r0-lr
+
+	mfsr	r0, SR_RAR_SUP
+	nop
+	st.w	--sp, r0
+
+	mfsr	r0, SR_RSR_SUP
+	nop
+	st.w	--sp, r0
+
+	lda.w	lr, avr32_curlwp
+	ld.w	lr, lr[0]
+	ld.w	lr, lr[L_PROC]
+	ld.w	lr, lr[P_MD_SYSCALL]
+
+	lda.w	r12, avr32_curlwp
+	ld.w	r12, r12[0]
+
+	mov	r11, 0
+	mov	r10, 0
+
+	icall	lr
+
+	/* Check for kernel mode */	
+	mfsr	r0, SR_STATUS
+	nop
+
+	andh	r0, hi(AVR32_STATUS_MMASK), COH
+	lddpc	r1, L_AVR32_STATUS_MKERN
+	cp.w	r0, r1
+	breq	1f
+	
+	mov	r11, r1
+	pushm	r11	
+	lda.w	r12, L_AVR32_MODE_PANIC
+	rcall	panic
+
+1:	ldmts	sp++, r0
+	mtsr	SR_RSR_SUP, r0
+	nop
+
+	ldmts 	sp++, r0
+	mtsr	SR_RAR_SUP, r0
+	nop
+
+	ldmts	sp++, r0-lr
+	rets
+	
+	.align 2
+L_AVR32_STATUS_MKERN:
+	.long AVR32_STATUS_MKERN

@@ -45,6 +45,7 @@
 #include <avr32/trap.h>
 #include <avr32/locore.h>
 #include <avr32/userret.h>
+#include <avr32/pmap.h>
 
 #define TRAPTYPE(ecr)	(ecr)
 #define KERNLAND(x)	((uint32_t)(x) >= VM_MIN_KERNEL_ADDRESS)
@@ -94,6 +95,17 @@ const char *trap_type[] = {
 	"supervisor call",              /* evba + 0x100 */
 };
 
+const char *exec_mode[] = {
+	"user",		/* AVR32_EXEC_MODE_USER */
+	"kernel",	/* AVR32_EXEC_MODE_KERN */
+	"int0",		/* AVR32_EXEC_MODE_INT0 */
+	"int1",		/* AVR32_EXEC_MODE_INT1 */
+	"int2",		/* AVR32_EXEC_MODE_INT2 */
+	"int3",		/* AVR32_EXEC_MODE_INT3 */
+	"exception",	/* AVR32_EXEC_MODE_XCPT */
+	"nmi",		/* AVR32_EXEC_MODE_NMI */
+};
+
 void
 child_return(void *arg)
 {
@@ -104,10 +116,11 @@ child_return(void *arg)
  * Trap is called from locore to handle most types of processor traps.
  */
 void
-trap(unsigned int status, unsigned int cause, vaddr_t vaddr, vaddr_t opc,
-	struct trapframe *frame) 
+trap(unsigned int cause, vaddr_t vaddr, struct trapframe *frame) 
 {
 	int type;
+	unsigned int status = frame->tf_regs[TF_SR];
+	unsigned int opc = frame->tf_regs[TF_PC];
 	struct lwp *l = curlwp;
 	struct proc *p = curproc;
 	vm_prot_t ftype;
@@ -120,6 +133,14 @@ trap(unsigned int status, unsigned int cause, vaddr_t vaddr, vaddr_t opc,
 
 	if ((type = TRAPTYPE(cause)) >= LENGTH(trap_type))
 		panic("trap: unknown trap type %d", type);
+
+#if 1 /* XXXAVR32 */
+	printf("trap: %s in %s mode\n",
+		trap_type[TRAPTYPE(cause)],
+		exec_mode[EXECMODE(status)]);
+	printf("status=0x%x, cause=0x%x, epc=%#lx, vaddr=%#lx\n",
+		status, cause, opc, vaddr);
+#endif
 
 	if (USERMODE(status)) {
 		type |= T_USER;
@@ -135,7 +156,7 @@ trap(unsigned int status, unsigned int cause, vaddr_t vaddr, vaddr_t opc,
 		(void)splhigh();
 		printf("trap: %s in %s mode\n",
 			trap_type[TRAPTYPE(cause)],
-			USERMODE(status) ? "user" : "kernel");
+			exec_mode[EXECMODE(status)]);
 		printf("status=0x%x, cause=0x%x, epc=%#lx, vaddr=%#lx\n",
 			status, cause, opc, vaddr);
 		if (curlwp != NULL) {
@@ -172,8 +193,34 @@ trap(unsigned int status, unsigned int cause, vaddr_t vaddr, vaddr_t opc,
 		panic("trap: dopanic: notyet");
 #endif
 		/*NOTREACHED*/
+	case T_DTLB_PROT:
+		panic("DTLB_PROT: notyet %x", vaddr);
+	case T_DTLB_PROT + T_USER:
+		panic("DTLB_PROT + T_USER: notyet %x", vaddr);
+	case T_TLB_PROT:
+	case T_TLB_PROT + T_USER:
+		#if 1
+		panic("T_TLB_PROT not yet. va 0x%x, TLBEHI[ASID] 0x%X", vaddr, AVR32_MFSR(SR_TLBEHI) & 0xFF);
+		pmap_t map;
+		if (KERNLAND(vaddr)){
+#if 0
+			pt_entry_t *pte = kvtopte(vaddr);
+			unsigned entry = pte->pt_entry;
+				
+			if (!avr32_pte_v(entry)) {
+				panic("ktlbprot: Invalid pte");
+			}
+			printf("T_TLB_MOD. pfn: %x, access type: %x\n", entry & AVR32_PG_FRAME, pte->pt_avr32_pte.pg_ap);
+			/* Need to call uvm_fault ? */	
+			uvm_fault(kernel_map, vaddr, VM_PROT_EXECUTE);
+			avr32_tlb_dump();
+#endif 
+		} else {
+			panic("userspace");
+		}
+		#endif 	
 	case T_TLB_MOD:
-		panic("trap: T_TLB_MOD: notyet");
+		panic("trap: T_TLB_MOD va %x notyet", vaddr);
 #if notyet
 		if (KERNLAND(vaddr)) {
 			pt_entry_t *pte;
@@ -232,7 +279,7 @@ trap(unsigned int status, unsigned int cause, vaddr_t vaddr, vaddr_t opc,
 		pte->pt_entry = entry;
 		vaddr = (vaddr & ~PGOFSET) |
 			(pmap->pm_asid << AVR32_TLB_PID_SHIFT);
-		MachTLBUpdate(vaddr, entry);
+		MachTLBUpdate(vaddr | AVR32_PG_VALID | pmap->pm_asid, entry);
 		pa = avr32_tlbpfn_to_paddr(entry);
 		if (!IS_VM_PHYSADDR(pa)) {
 			printf("utlbmod: va %#lx pa %#llx\n",
@@ -246,13 +293,10 @@ trap(unsigned int status, unsigned int cause, vaddr_t vaddr, vaddr_t opc,
 	    }
 #endif
 	case T_TLB_LD_MISS:
-		panic("trap: T_TLB_LD_MISS: notyet");
 	case T_TLB_ST_MISS:
 		ftype = (type == T_TLB_LD_MISS) ? VM_PROT_READ : VM_PROT_WRITE;
 		if (KERNLAND(vaddr))
 			goto kernelfault;
-		panic("trap: T_TLB_ST_MISS: notyet");
-#if notyet
 		/*
 		 * It is an error for the kernel to access user space except
 		 * through the copyin/copyout routines.
@@ -261,22 +305,23 @@ trap(unsigned int status, unsigned int cause, vaddr_t vaddr, vaddr_t opc,
 			goto dopanic;
 		/* check for fuswintr() or suswintr() getting a page fault */
 		if (l->l_addr->u_pcb.pcb_onfault == (void *)fswintrberr) {
+			panic("%s %s %d trap : notyet", __FILE__, __FUNCTION__, __LINE__);
+			#ifdef notyet
 			frame->tf_regs[TF_EPC] = (int)fswintrberr;
 			return; /* KERN */
+			#endif
 		}
 		goto pagefault;
-#endif
-	case T_TLB_LD_MISS+T_USER:
-		panic("trap: T_TLB_LD_MISS+T_USER: notyet");
-#if notyet
+		panic("trap: T_TLB_LD_MISS/T_TLB_ST_MISS: notyet");
+	case T_ITLB_MISS+T_USER:
 		ftype = VM_PROT_READ;
 		goto pagefault;
-#endif
+	case T_TLB_LD_MISS+T_USER:
+		printf("TLB_LD_MISS + T_USER: vaddr: %x, pmap->pm_asid %x\n", vaddr, p->p_vmspace->vm_map.pmap->pm_asid);
+		ftype = VM_PROT_READ;
+		goto pagefault;
 	case T_TLB_ST_MISS+T_USER:
-		panic("trap: T_TLB_ST_MISS+T_USER: notyet");
-#if notyet
 		ftype = VM_PROT_WRITE;
-#endif
 	pagefault: ;
 	    {
 		vaddr_t va;
@@ -293,8 +338,10 @@ trap(unsigned int status, unsigned int cause, vaddr_t vaddr, vaddr_t opc,
 			l->l_pflag |= LP_SA_PAGEFAULT;
 		}
 
-		if (p->p_emul->e_fault)
+		if (p->p_emul->e_fault){
+			panic("trap. p->p_emul->e_fault notyet");
 			rv = (*p->p_emul->e_fault)(p, va, ftype);
+		}
 		else
 			rv = uvm_fault(map, va, ftype);
 				
@@ -335,9 +382,11 @@ trap(unsigned int status, unsigned int cause, vaddr_t vaddr, vaddr_t opc,
 			ksi.ksi_code = 0;
 		} else {
 			if (rv == EACCES) {
+				panic("trap: SIGBUS");
 				ksi.ksi_signo = SIGBUS;
 				ksi.ksi_code = BUS_OBJERR;
 			} else {
+				panic("trap: SIGSEV");
 				ksi.ksi_signo = SIGSEGV;
 				ksi.ksi_code = SEGV_MAPERR;
 			}
@@ -350,9 +399,17 @@ trap(unsigned int status, unsigned int cause, vaddr_t vaddr, vaddr_t opc,
 	    {
 		vaddr_t va;
 		int rv;
-
+		
 		va = trunc_page(vaddr);
 		rv = uvm_fault(kernel_map, va, ftype);
+#if 0
+		avr32_tlb_dump();
+		printf("[XXXAVR32] r0: 0x%08x\t r1:  0x%08x\t r2:  0x%08x\t\n", frame->tf_regs[15], frame->tf_regs[14], frame->tf_regs[13]);
+		printf("[XXXAVR32] r3: 0x%08x\t r4:  0x%08x\t r5:  0x%08x\t\n", frame->tf_regs[12], frame->tf_regs[11], frame->tf_regs[10]);
+		printf("[XXXAVR32] r6: 0x%08x\t r7:  0x%08x\t r8:  0x%08x\t\n", frame->tf_regs[9], frame->tf_regs[8], frame->tf_regs[7]);
+		printf("[XXXAVR32] r9: 0x%08x\t r10: 0x%08x\t r11: 0x%08x\t r12:0x%08x\t\n", frame->tf_regs[6], frame->tf_regs[5], frame->tf_regs[4], frame->tf_regs[3]);
+		printf("[XXXAVR32] lr: 0x%08x\t opc: 0x%08x\t sr:  0x%08x\t\n", frame->tf_regs[2], frame->tf_regs[1], frame->tf_regs[0]);
+#endif
 		if (rv == 0)
 			return; /* KERN */
 		/*FALLTHROUGH*/

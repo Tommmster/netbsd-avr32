@@ -56,7 +56,7 @@ static const char *xcpt_names[] = {
 	"DTLB Modified",		/* evba + 0x44  */
 	"reserved 18",			/* evba + 0x48  */
 	"reserved 19",			/* evba + 0x4c  */
-	"reserved 20",			/* evba + 0x50  */
+	"ITLB Miss",			/* evba + 0x50  */
 	"reserved 21",			/* evba + 0x54  */
 	"reserved 22",			/* evba + 0x58  */
 	"reserved 23",			/* evba + 0x5c  */
@@ -88,17 +88,55 @@ exception_name(unsigned int offset)
 	if (offset < LEN(xcpt_names))
 		return xcpt_names[offset];
 
-	panic("offset error :%u \n", offset);
+	panic("Invalid ecr value : 0x%x \n", offset);
 	
 }
 
 void
-handle_with_panic(unsigned int ecr, unsigned int pc)
+handle_with_panic(unsigned int ecr, unsigned int pc, unsigned int bear)
 {
-#if 0
-	printf("[Handle with panic] ecr: %u\n", ecr);
-	printf("[Handle with panic] PC: %x\n", pc);
-	printf("[Handle with panic] STATUS: %x\n", AVR32_MFSR(SR_STATUS));
-#endif
-	panic(exception_name(ecr));
+	avr32_tlb_dump();
+
+	printf("args: 0x%x 0x%x 0x%x\n", ecr, pc, bear);
+	printf("ECR at: 0x%x\n", AVR32_MFSR(SR_ECR));
+	printf("RAR_SUP at: 0x%x\n", AVR32_MFSR(SR_RAR_SUP));
+	printf("SR at: 0x%x\n", AVR32_MFSR(SR_STATUS));
+	printf("RAR_SR at: 0x%x\n", AVR32_MFSR(SR_RSR_EX));
+	
+	printf("*1074 : 0x%x\n", *((u_int *)AVR32_MFSR(SR_RAR_EX)));
+	
+	panic("%s: ecr: 0x%x 0x%x 0x%x",exception_name(ecr),ecr, pc, bear);
+	panic("handle_with_panic: 0x%x", ecr);
+}
+
+void
+handle_with_panic2(unsigned int ecr, unsigned int sr, unsigned int rsr_ex, unsigned int o)
+{
+	#define RSR_INT0	AVR32_MFSR(SR_RSR_INT0)
+	#define RSR_INT1	AVR32_MFSR(SR_RSR_INT1)
+	#define RSR_INT2	AVR32_MFSR(SR_RSR_INT2)
+	#define RSR_INT3	AVR32_MFSR(SR_RSR_INT3)
+
+	#define EM_M	(1<<21)
+	#define EENABLED(i)	((i) & EM_M ?"Masked": "Unmasked")
+
+	printf("Interruptions status: INT0 0x%x INT1 0x%x INT2 0x%x INT3 0x%x\n", RSR_INT0, RSR_INT1,  RSR_INT2, RSR_INT3);
+	printf("Exceptions enabled?: At I0 %s At I1 %s At I2 %s At I3 %s\n", EENABLED(RSR_INT0),EENABLED(RSR_INT1) ,EENABLED(RSR_INT2),EENABLED(RSR_INT3));
+
+	printf("RAR_EX at: 0x%x\n", AVR32_MFSR(SR_RAR_EX));
+	panic("handle_with_panic 2");
+	printf("%s: SR: 0x%x RSR_EX: 0x%x \n", exception_name(ecr), sr, rsr_ex);
+	avr32_tlb_dump();
+	panic("handle with panic2");
+}
+
+void
+handle_protection(unsigned int ecr, unsigned int tlbear, unsigned int rar_ex) 
+{
+	panic("handle_protection");
+	const char *ename = exception_name(ecr);
+
+	printf("%s. RAR_EX at 0x%x\n", ename, rar_ex);
+	avr32_tlb_dump();
+	panic("%s. badvaddr: 0x%x", ename, tlbear);
 }

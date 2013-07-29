@@ -47,11 +47,20 @@ MachTLBUpdate:
 
 	/* Remove the SW-based bit. */
 	andh	r11, hi(~(AVR32_PTE_WIRED | AVR32_PTE_VALID))
-     
+    	
+	mfsr	r10, SR_TLBEHI 
+	andl	r10, lo(AVR32_PG_ASID), COH
+
 	mtsr	SR_TLBEHI, r12
 	mtsr	SR_TLBELO, r11
 
 	tlbw
+	nop
+
+	/* XXXAVR32 force pipeline flush: doc32001.pdf p66 BTB Update policy */
+	mtsr	SR_TLBEHI, r10
+	sub	pc, -2 
+	nop
 
 	ldm sp++, pc	
 	.size MachTLBUpdate, . - MachTLBUpdate
@@ -129,6 +138,91 @@ cpu_switch_resume:
 	
 	ldm	sp++, pc
 	.size cpu_switch_resume, . - cpu_switch_resume
+/*
+ * void avr32_tbis(uint32_t tlbehi, uint32_t tlbelo)
+ */
+	.text
+	.global avr32_tbis
+	.align 1
+avr32_tbis:
+	/* Disable interrupts */
+	mfsr	r8, SR_STATUS	
+	nop
+	mov	r9, r8
+	orh	r9, hi(AVR32_STATUS_IM | AVR32_STATUS_EM)
+	mtsr	SR_STATUS, r9
+	nop
+	
+	/* Save a copy of the ASID */
+	mfsr	r9, SR_TLBEHI
+	nop
+
+#if PARANOIADIAG || 1 /* XXXAVR32 */
+	mov	r10, r12
+	andl	r10, lo(AVR32_PG_VALID), COH
+	brne	1f	
+
+	lda.w	r12, L_AVR32_TBIS_MSG
+	rcall 	panic
+	
+1:	mov	r10, r12
+	andl	r10, lo(AVR32_PG_ASID), COH
+	cp.w	r10, 0	
+	brne	2f
+	
+	mov	r10, r11
+	andl	r10, lo(AVR32_PG_GLOBAL), COH
+	cp.w	r10, AVR32_PG_GLOBAL
+	breq	2f
+	
+	lda.w	r12, L_AVR32_TBIS_MSG2
+	rcall	panic
+2:	
+#endif
+
+	mtsr	SR_TLBEHI, r12
+	sub	pc, -2
+	nop
+
+	mtsr	SR_TLBELO, r11
+	nop
+
+	tlbs
+	mfsr	r10, SR_MMUCR	
+	nop
+	andl	r10, lo(AVR32_MMUCR_NF), COH
+	brne	3f
+
+	/* Invalidate this tlb entry */
+	lddpc 	r10, L_AVR32_TLBEHI_DISABLED
+	mtsr	SR_TLBEHI, r10
+	sub	pc, -2
+
+	mov	r10, 0
+	mtsr	SR_TLBELO, r10
+	nop
+
+	tlbw
+	nop
+
+	/* Restore ASID before enabling interrupts. */
+3:	mtsr 	SR_TLBEHI, r9
+	sub	pc, -2
+
+	/* Restore the Status register */
+	mtsr	SR_STATUS, r8
+	nop
+
+
+	mov	pc, lr
+	.size avr32_tbis,.-avr32_tbis
+
+	.data
+	.align 1
+L_AVR32_TBIS_MSG:
+	.asciz "avr32_tbis"
+L_AVR32_TBIS_MSG2:
+	.asciz "avr32_tbis2"
 
 /*
  * void avr32_tbiap(int sizeofTLB)
@@ -224,6 +318,26 @@ avr32_tbiap:
 	sub	pc, -2
 	retal	lr
 
+	
+	.text
+	.global MachSetPID
+	.align 1
+MachSetPID:
+/* XXXAVR32 PARANOIADIAG */
+#ifdef PARANOIADIAG
+	cp.w	r12, AVR32_PG_ASID
+	brls	1f
+	
+	lda.w	r12, L_AVR32_HIGH_ASID
+	rcall	panic
+#endif
+
+1:	mtsr	SR_TLBEHI, r12
+	sub	pc, -2
+
+	retal	 lr
+	.size MachSetPID,.-MachSetPID
+
 	.align 2
 L_AVR32_TLBEHI_DISABLED:
 	.long AVR32_P1_START & AVR32_PG_VPN
@@ -231,3 +345,7 @@ L_AVR32_MMUCR_DLA_MASK:
 	.long AVR32_MMUCR_DLA_MASK
 L_AVR32_MMUCR_DRP_MASK:
 	.long AVR32_MMUCR_DRP_MASK
+L_AVR32_TBIS_TLBELO:
+	.long AVR32_PG_SIZE_4K
+L_AVR32_HIGH_ASID:
+	.asciz "MachSetPID: Invalid ASID"

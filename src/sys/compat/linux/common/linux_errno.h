@@ -85,6 +85,8 @@
 #include <compat/linux/arch/arm/linux_errno.h>
 #elif defined(__amd64__)
 #include <compat/linux/arch/amd64/linux_errno.h>
+#elif defined(__avr32__)
+#include <compat/linux/arch/avr32/linux_errno.h>
 #else
 #include <compat/linux/arch/i386/linux_errno.h> /* XXX:Allow kdump to compile */
 #endif

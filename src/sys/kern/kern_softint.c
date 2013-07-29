@@ -461,7 +461,6 @@ softint_schedule(void *arg)
 	offset = (uintptr_t)arg;
 	KASSERT(offset != 0 && offset < softint_bytes);
 	sh = (softhand_t *)((uint8_t *)curcpu()->ci_data.cpu_softcpu + offset);
-
 	/* If it's already pending there's nothing to do. */
 	if ((sh->sh_flags & SOFTINT_PENDING) != 0)
 		return;

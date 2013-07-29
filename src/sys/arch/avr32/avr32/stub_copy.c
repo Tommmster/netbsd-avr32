@@ -40,20 +40,6 @@ kcopyerr(void)
 }
 
 int
-copyin(const void* src, void* dst, size_t size)
-{
-	panic("copyin: notyet");
-	return 0;
-}
-
-int
-copyoutstr(const void *uaddr, void *kaddr, size_t maxlen, size_t *lencopied)
-{
-	panic("copyoutstr: notyet");
-	return 0;
-}
-
-int
 subyte(void *s, int b)
 {
 	panic("subyte: notyet");

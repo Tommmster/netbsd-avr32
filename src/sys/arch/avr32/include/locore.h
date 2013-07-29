@@ -71,7 +71,7 @@ void *lwp_trampoline(void);
 
 void MachTLBUpdate(register_t, register_t);
 void avr32_tbiap(int);
-void avr32_tbis(vaddr_t);
+void avr32_tbis(uint32_t, uint32_t);
 
 #define AVR32_TBIAP() \
 	avr32_tbiap(avr32_num_tlb_entries)
@@ -80,12 +80,19 @@ void avr32_count_write(unsigned int value);
 void avr32_compare_write(unsigned int value);
 unsigned int avr32_count_read(void);
 
-#define TF_NREGS	16
+#define TF_SR	0
+#define TF_PC	1
+
+#define TF_NREGS	17
 
 struct trapframe {
 	avr32_reg_t tf_regs[TF_NREGS];
 	u_int32_t  tf_ppl;              /* previous priority level */
 	int32_t    tf_pad;              /* for 8 byte aligned */
+};
+
+struct kernframe {
+	struct trapframe	cf_frame;
 };
 
 #endif /* _AVR32_LOCORE_H_ */

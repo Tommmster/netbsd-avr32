@@ -54,6 +54,7 @@
  * dynamically allocated at boot time.
  */
 
+#define avr32_trunc_seg(x)	((vaddr_t)(x) & ~SEGOFSET)
 #define pmap_segmap(m, v)	((m)->pm_segtab->seg_tab[((v) >> SEGSHIFT)])
 
 #define PMAP_SEGTABSIZE		512
