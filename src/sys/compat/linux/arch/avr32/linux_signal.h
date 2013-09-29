@@ -58,7 +58,7 @@ struct linux_pt_regs {
 };
 
 /*
- * Everything is from Linux's include/asm-mips/signal.h
+ * Everything is from Linux's include/asm-avr32/signal.h
  */
 #define LINUX_SIGHUP	 	1
 #define LINUX_SIGINT		2
@@ -67,63 +67,58 @@ struct linux_pt_regs {
 #define LINUX_SIGTRAP		5
 #define LINUX_SIGABRT		6
 #define LINUX_SIGIOT		6
-#define LINUX_SIGEMT		7
+#define LINUX_SIGBUS		7	
 #define LINUX_SIGFPE		8
 #define LINUX_SIGKILL		9
-#define LINUX_SIGBUS		10
+#define LINUX_SIGUSR1		10
 #define LINUX_SIGSEGV		11
-#define LINUX_SIGSYS		12
+#define LINUX_SIGUSR2		12
 #define LINUX_SIGPIPE		13
 #define LINUX_SIGALRM		14
 #define LINUX_SIGTERM		15
-#define LINUX_SIGUSR1		16
-#define LINUX_SIGUSR2		17
-#define LINUX_SIGCHLD		18
-#define LINUX_SIGCLD		18
-#define LINUX_SIGPWR		19
-#define LINUX_SIGWINCH		20
-#define LINUX_SIGURG		21
-#define LINUX_SIGIO		22
-#define LINUX_SIGPOLL		22
-#define LINUX_SIGSTOP		23
-#define LINUX_SIGTSTP		24
-#define LINUX_SIGCONT		25
-#define LINUX_SIGTTIN		26
-#define LINUX_SIGTTOU		27
-#define LINUX_SIGVTALRM		28
-#define LINUX_SIGPROF		29
-#define LINUX_SIGXCPU		30
-#define LINUX_SIGXFSZ		31
+#define LINUX_SIGSTKFLT		16
+#define LINUX_SIGCHLD		17
+#define LINUX_SIGCONT		18
+#define LINUX_SIGSTOP		19
+#define LINUX_SIGTSTP		20
+#define LINUX_SIGTTIN		21
+#define LINUX_SIGTTOU		22
+#define LINUX_SIGURG		23
+#define LINUX_SIGXCPU		24
+#define LINUX_SIGXFSZ		25
+#define LINUX_SIGVTALRM		26
+#define LINUX_SIGPROF		27
+#define LINUX_SIGWINCH		28
+#define LINUX_SIGIO		29
+#define LINUX_SIGPOLL		29
+#define LINUX_SIGPWR		30
+#define LINUX_SIGSYS		31
+#define LINUX_SIGUNUSED		31
 
 /* Min/max real-time linux signal */
 #define LINUX_SIGRTMIN		32
 #define LINUX_SIGRTMAX		(LINUX__NSIG - 1)
 
-#define LINUX__NSIG		128
-#if defined(ELFSIZE) && (ELFSIZE == 64)
-#define LINUX__NSIG_BPW		64
-#else
+#define LINUX__NSIG		64
 #define LINUX__NSIG_BPW		32
-#endif
 #define LINUX__NSIG_WORDS (LINUX__NSIG / LINUX__NSIG_BPW)
 
-#define LINUX_SIG_BLOCK		1
-#define LINUX_SIG_UNBLOCK	2
-#define LINUX_SIG_SETMASK	3
+#define LINUX_SIG_BLOCK		0
+#define LINUX_SIG_UNBLOCK	1
+#define LINUX_SIG_SETMASK	2
 
 /* sa_flags */
 #define LINUX_SA_NOCLDSTOP	0x00000001
-#define LINUX_SA_SIGINFO	0x00000008
-#define LINUX_SA_NOCLDWAIT	0x00010000
+#define LINUX_SA_NOCLDWAIT	0x00000002
+#define LINUX_SA_SIGINFO	0x00000004
 #define LINUX_SA_RESTORER	0x04000000
 #define LINUX_SA_ONSTACK	0x08000000
 #define LINUX_SA_RESTART	0x10000000
-#define LINUX_SA_INTERRUPT	0x20000000
 #define LINUX_SA_NODEFER	0x40000000
 #define LINUX_SA_RESETHAND	0x80000000
 #define LINUX_SA_NOMASK		LINUX_SA_NODEFER
 #define LINUX_SA_ONESHOT	LINUX_SA_RESETHAND
-#define LINUX_SA_ALLBITS	0xfc010009 /* XXX from i386, not in mips. */
+#define LINUX_SA_ALLBITS	0xdc010007
 
 #define	LINUX_MINSIGSTKSZ	2048
 
@@ -134,25 +129,28 @@ typedef struct {
 	unsigned long sig[LINUX__NSIG_WORDS];
 } linux_sigset_t;
 
-/* Used in rt_* calls. No old_sigaction is defined for MIPS */
+/*
+ * include/asm-avr32/signal.h
+ */ 
 struct linux_sigaction {
-	unsigned int		linux_sa_flags;
 	linux___sighandler_t	linux_sa_handler;
-	linux_sigset_t		linux_sa_mask;
+	unsigned long		linux_sa_flags;
 	void			(*linux_sa_restorer)(void);
-	int			linux_sa_resv[1];
+	linux_sigset_t		linux_sa_mask;
 };
 
 struct linux_k_sigaction {
 	struct linux_sigaction sa;
 };
 
+/*
+ * include/asm-avr32/signal.h
+ */ 
 struct linux_old_sigaction {
-	unsigned int		linux_sa_flags;
 	linux___sighandler_t	linux_sa_handler;
 	linux_old_sigset_t	linux_sa_mask;
+	unsigned long		linux_sa_flags;
 	void			(*linux_sa_restorer)(void);
-	int			linux_sa_resv[1];
 };
 
 #define	LINUX_SS_ONSTACK	1
@@ -163,8 +161,8 @@ struct linux_old_sigaction {
 
 struct linux_sigaltstack {
 	void *ss_sp;
-	size_t ss_size;
 	int ss_flags;
+	size_t ss_size;
 };
 typedef struct linux_sigaltstack linux_stack_t; /* XXX really needed ? */
 

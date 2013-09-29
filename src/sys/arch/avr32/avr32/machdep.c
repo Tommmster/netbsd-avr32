@@ -79,7 +79,7 @@ struct user *proc0paddr;
 
 char machine[] = MACHINE;
 char machine_arch[] = MACHINE_ARCH;
- 
+
 int physmem; /* max supported memory, changes to actual */
 
 /*
@@ -108,7 +108,7 @@ int mem_cluster_cnt;
 /*
  *  Ensure all platform vectors are always initialized.
  */
-static void 
+static void
 unimpl_bus_reset(void)
 {
 	panic("unimpl_bus_reset");
@@ -182,7 +182,7 @@ mach_init()
 	for (i = 0, physmem = 0; i < mem_cluster_cnt; ++i) {
 		first = mem_clusters[i].start;
 
-		if (first < AVR32_P1_TO_PHYS(kernend)) 
+		if (first < AVR32_P1_TO_PHYS(kernend))
 			first = round_page(AVR32_P1_TO_PHYS(kernend));
 		last = mem_clusters[i].start + mem_clusters[i].size;
 		physmem += atop(mem_clusters[i].size);
@@ -197,7 +197,7 @@ mach_init()
 	pmap_bootstrap();
 }
 
-void 
+void
 avr32_vector_init(void)
 {
 	extern char _evba[];
@@ -308,7 +308,7 @@ cpu_reboot(volatile int howto, char *bootsr)
 	/*
 	 * XXX Cannot panic() here due to recursion issues. This routine
 	 * needs extensive overhaul, for now we just print a message and
-	 * halt. 
+	 * halt.
 	 */
 	printf("cpu_reboot: notyet\n");
 	while (1)
@@ -453,11 +453,11 @@ cpu_identify(void)
 	/* 
 	 * Refer to avr32_vector_init() for the TLB detection logic.
 	 */
-	printf("%s: unified TLB, %d entries\n", 
+	printf("%s: unified TLB, %d entries\n",
 		label, avr32_num_tlb_entries);
 }
 
-void 
+void
 cpu_need_resched(struct cpu_info *ci, int flags)
 {
 	aston(ci->ci_data.cpu_onproc);
@@ -467,7 +467,9 @@ cpu_need_resched(struct cpu_info *ci, int flags)
 void
 cpu_idle(void)
 {
-	panic("cpu_idle: notyet");
+	/* XXXAVR32 Needs further work */
+	while (!curcpu()->ci_want_resched)
+		;
 }
 
 bool
@@ -491,8 +493,28 @@ cpu_getmcontext(struct lwp *l, mcontext_t *mcp, unsigned int *flags)
 int
 cpu_setmcontext(struct lwp *l, const mcontext_t *mcp, unsigned int flags)
 {
-	panic("cpu_setmcontext: notyet");
-	return 0;
+	struct frame *f = (struct frame *)l->l_md.md_regs;
+	const __greg_t *gr = mcp->__gregs;
+	struct proc *p = l->l_proc;
+
+	/* Restore register context, if any. */
+	if (flags & _UC_CPU) {
+		/* Save register context. */
+		/* XXX:  Do we validate the addresses?? */
+		memcpy(&f->f_regs[_R_PC], &gr[_R_PC],
+		       sizeof(avr32_reg_t) * 16);
+
+		/* Do not restore SR. */
+	}
+
+	mutex_enter(p->p_lock);
+	if (flags & _UC_SETSTACK)
+		l->l_sigstk.ss_flags |= SS_ONSTACK;
+	if (flags & _UC_CLRSTACK)
+		l->l_sigstk.ss_flags &= ~SS_ONSTACK;
+	mutex_exit(p->p_lock);
+
+	return (0);
 }
 
 void
@@ -503,23 +525,6 @@ setregs(struct lwp *l, struct exec_package *pack, u_long stack)
 	memset(f, 0, sizeof(struct frame));
 	f->f_regs[_R_SP] = (int)stack;
 	f->f_regs[_R_PC] = (int)pack->ep_entry & ~1;
-
-	//f->f_regs[_R_T9] = (int)pack->ep_entry & ~3; /* abicall requirement */
-	//f->f_regs[_R_SR] = PSL_USERSET;
-	/*
-	 * Set up arguments for _start():
-	 *	_start(stack, obj, cleanup, ps_strings);
-	 *
-	 * Notes:
-	 *	- obj and cleanup are the auxiliary and termination
-	 *	  vectors.  They are fixed up by ld.elf_so.
-	 *	- ps_strings is a NetBSD extension.
-	 */
-	f->f_regs[_R_R12] = (uintptr_t)stack;
-	f->f_regs[_R_R11] = 0;
-	f->f_regs[_R_R10] = 0;
-	f->f_regs[_R_R9] = (intptr_t)l->l_proc->p_psstr;
-
 	l->l_md.md_ss_addr = 0;
 }
 

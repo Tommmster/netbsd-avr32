@@ -1,4 +1,4 @@
-/* 	$NetBSD$	 */
+/* 	$NetBSD$	*/
 
 /*-
  * Copyright (c) 2013 The NetBSD Foundation, Inc.
@@ -39,8 +39,8 @@
 #include <sys/mount.h>
 #include <sys/syscallargs.h>
 
-void    
+void
 sendsig(const ksiginfo_t *ksi, const sigset_t *mask)
-{   
+{
 	panic("sendsig: notyet");
 }

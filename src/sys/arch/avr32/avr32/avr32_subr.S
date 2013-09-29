@@ -1,4 +1,4 @@
-/* 	$NetBSD$	 */
+/* 	$NetBSD$	*/
 
 /*-
  * Copyright (c) 2013 The NetBSD Foundation, Inc.
@@ -37,89 +37,87 @@
 /*
  * void MachTLBUpdate(u_int tlbehi, u_int ptentry)
  */
-	.text
-	.align 1
-	.globl MachTLBUpdate
-	.type MachTLBUpdate,@function
-
-MachTLBUpdate:
+ENTRY(MachTLBUpdate)
 	stm --sp, lr
 
-	/* Remove the SW-based bit. */
+	/* Disable interrupts. */
+	mfsr	r9, SR_STATUS
+	nop
+	mov	r8, r9
+	orh	r8, hi(AVR32_STATUS_IM)
+	mtsr	SR_STATUS, r8
+	sub	pc, -2
+	nop
+
+	/* Remove SW bits. */
 	andh	r11, hi(~(AVR32_PTE_WIRED | AVR32_PTE_VALID))
-    	
-	mfsr	r10, SR_TLBEHI 
+
+	/* Save a copy of the current ASID field. */
+	mfsr	r10, SR_TLBEHI
+	nop
 	andl	r10, lo(AVR32_PG_ASID), COH
 
+	/* Replace TLB entry. */
 	mtsr	SR_TLBEHI, r12
 	mtsr	SR_TLBELO, r11
-
+	nop
+	tlbs
+	nop
 	tlbw
 	nop
 
-	/* XXXAVR32 force pipeline flush: doc32001.pdf p66 BTB Update policy */
+	/* 
+	 * Restore the previous ASID. Flush the pipeline as stated in the
+	 * processor documentation.
+	 */
 	mtsr	SR_TLBEHI, r10
 	sub	pc, -2 
 	nop
 
-	ldm sp++, pc	
-	.size MachTLBUpdate, . - MachTLBUpdate
+	/* Restore previous interrupt state. */
+	mtsr	SR_STATUS, r9
+	sub	pc, -2
+	nop
+
+	ldm	sp++, pc
+END(MachTLBUpdate)
 
 /*
  * void avr32_compare_write(u_int32_t n);
  * 	Set the value of the COMPARE register.
  */
-	.text
-	.align 1
-	.globl avr32_compare_write
-	.type avr32_compare_write,@function
-
-avr32_compare_write:
+ENTRY(avr32_compare_write)
 	mtsr	SR_COMPARE, r12
 	nop
 	mov	pc, lr
-	.size avr32_compare_write, . - avr32_compare_write
+END(avr32_compare_write)
 
 /*
  * void avr32_count_write(u_int32_t n);
  * 	Set the value of the COUNT register.
  */
-	.text
-	.align 1
-	.globl avr32_count_write
-	.type avr32_count_write, @function
-
-avr32_count_write:
+ENTRY(avr32_count_write)
 	mtsr	SR_COUNT, r12
 	nop
 	mov	pc, lr
-	.size avr32_count_write, . - avr32_count_write
+END(avr32_count_write)
 
 /*
  * u_int32_t avr32_count_read(void)
  * 	Return the value of the COUNT register.
  */
-	.text
-	.align 1
-	.globl avr32_count_read
-	.type avr32_count_read, @function
-
-avr32_count_read:
+ENTRY(avr32_count_read)
 	mfsr	r12, SR_COUNT
 	nop
 	mov	pc, lr
-	.size avr32_count_read, . - avr32_count_read
+END(avr32_count_read)
 
 /*
  * void cpu_switch_resume(struct lwp *newlwp)
  *
  * Wiredown the USPACE of newlwp in tlb entry #0
  */
-	.align 1
-	.text
-	.globl cpu_switch_resume
-
-cpu_switch_resume:
+ENTRY(cpu_switch_resume)
 	stm	--sp, lr
 
 	/* XXX Should invalidate relevant entries only. */
@@ -137,20 +135,20 @@ cpu_switch_resume:
 	mtsr	SR_TLBEHI, r0
 	
 	ldm	sp++, pc
-	.size cpu_switch_resume, . - cpu_switch_resume
+END(cpu_switch_resume)
+
 /*
  * void avr32_tbis(uint32_t tlbehi, uint32_t tlbelo)
  */
-	.text
-	.global avr32_tbis
-	.align 1
-avr32_tbis:
-	/* Disable interrupts */
-	mfsr	r8, SR_STATUS	
+ENTRY(avr32_tbis)
+	/* Disable interrupts. */
+	mfsr	r8, SR_STATUS
+	sub	pc, -2
 	nop
 	mov	r9, r8
 	orh	r9, hi(AVR32_STATUS_IM | AVR32_STATUS_EM)
 	mtsr	SR_STATUS, r9
+	sub	pc, -2
 	nop
 	
 	/* Save a copy of the ASID */
@@ -162,8 +160,7 @@ avr32_tbis:
 	andl	r10, lo(AVR32_PG_VALID), COH
 	brne	1f	
 
-	lda.w	r12, L_AVR32_TBIS_MSG
-	rcall 	panic
+	PANIC("avr32_tbis: invalid entry")
 	
 1:	mov	r10, r12
 	andl	r10, lo(AVR32_PG_ASID), COH
@@ -175,12 +172,9 @@ avr32_tbis:
 	cp.w	r10, AVR32_PG_GLOBAL
 	breq	2f
 	
-	lda.w	r12, L_AVR32_TBIS_MSG2
-	rcall	panic
-2:	
+	PANIC("avr32_tbis: non-global PTE entry without ASID")
 #endif
-
-	mtsr	SR_TLBEHI, r12
+2:	mtsr	SR_TLBEHI, r12
 	sub	pc, -2
 	nop
 
@@ -209,20 +203,13 @@ avr32_tbis:
 3:	mtsr 	SR_TLBEHI, r9
 	sub	pc, -2
 
-	/* Restore the Status register */
+	/* Restore the status register. */
 	mtsr	SR_STATUS, r8
+	sub	pc, -2
 	nop
 
-
 	mov	pc, lr
-	.size avr32_tbis,.-avr32_tbis
-
-	.data
-	.align 1
-L_AVR32_TBIS_MSG:
-	.asciz "avr32_tbis"
-L_AVR32_TBIS_MSG2:
-	.asciz "avr32_tbis2"
+END(avr32_tbis)
 
 /*
  * void avr32_tbiap(int sizeofTLB)
@@ -230,11 +217,7 @@ L_AVR32_TBIS_MSG2:
  * Invalidate TLB entries belonging to per process user spaces while
  * leaving entries for kernel space marked global intact.
  */
-	.text
-	.global avr32_tbiap
-	.align 1
-
-avr32_tbiap:
+ENTRY(avr32_tbiap)
 	/* Disable interrupts. */
 	mfsr	r8, SR_STATUS
 	nop
@@ -317,13 +300,9 @@ avr32_tbiap:
 	mtsr	SR_STATUS, r8
 	sub	pc, -2
 	retal	lr
+END(avr32_tbiap)
 
-	
-	.text
-	.global MachSetPID
-	.align 1
-MachSetPID:
-/* XXXAVR32 PARANOIADIAG */
+ENTRY(MachSetPID)
 #ifdef PARANOIADIAG
 	cp.w	r12, AVR32_PG_ASID
 	brls	1f
@@ -336,7 +315,7 @@ MachSetPID:
 	sub	pc, -2
 
 	retal	 lr
-	.size MachSetPID,.-MachSetPID
+END(MachSetPID)
 
 	.align 2
 L_AVR32_TLBEHI_DISABLED:

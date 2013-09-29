@@ -268,17 +268,17 @@ linux_sys_rt_sigaction(struct lwp *l, const struct linux_sys_rt_sigaction_args *
 	int error, sig;
 	void *tramp = NULL;
 	int vers = 0;
-#if defined __amd64__
+#if defined __amd64__ || __avr32__
 	struct sigacts *ps = l->l_proc->p_sigacts;
 #endif
-
-	if (SCARG(uap, sigsetsize) != sizeof(linux_sigset_t))
+	if (SCARG(uap, sigsetsize) != sizeof(linux_sigset_t)) 
 		return (EINVAL);
 
 	if (SCARG(uap, nsa)) {
 		error = copyin(SCARG(uap, nsa), &nlsa, sizeof(nlsa));
-		if (error)
+		if (error) {
 			return (error);
+		}
 		linux_to_native_sigaction(&nbsa, &nlsa);
 	}
 
@@ -291,7 +291,7 @@ linux_sys_rt_sigaction(struct lwp *l, const struct linux_sys_rt_sigaction_args *
 		sigemptyset(&obsa.sa_mask);
 		obsa.sa_flags = 0;
 	} else {
-#if defined __amd64__
+#if defined __amd64__ || __avr32__
 		if (nlsa.linux_sa_flags & LINUX_SA_RESTORER) {
 			if ((tramp = nlsa.linux_sa_restorer) != NULL)
 				vers = 2; /* XXX arch dependant */
@@ -302,13 +302,14 @@ linux_sys_rt_sigaction(struct lwp *l, const struct linux_sys_rt_sigaction_args *
 		    SCARG(uap, nsa) ? &nbsa : NULL,
 		    SCARG(uap, osa) ? &obsa : NULL,
 		    tramp, vers);
+		
 		if (error)
 			return (error);
 	}
 	if (SCARG(uap, osa)) {
 		native_to_linux_sigaction(&olsa, &obsa);
 
-#if defined __amd64__
+#if defined __amd64__ || __avr32__
 		if (ps->sa_sigdesc[sig].sd_vers != 0) {
 			olsa.linux_sa_restorer = ps->sa_sigdesc[sig].sd_tramp;
 			olsa.linux_sa_flags |= LINUX_SA_RESTORER;

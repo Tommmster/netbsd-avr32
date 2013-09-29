@@ -38,7 +38,7 @@
 
 #define PAGE_SIZE	4096
 #define NBPG		4096
-#define PGSHIFT		12      
+#define PGSHIFT		12
 #define SEGSHIFT	22
 #define NPTEPG		(NBPG/4)
 
@@ -59,11 +59,14 @@
 #define AVR32_PG_DIRTY		0x00000002
 #define AVR32_PG_WTHRU		0x00000001
 #define AVR32_PG_SIZE_4K	0x00000004
+
 /*
  * Byte offsets related to struct lwp.
  */
 #define L_ADDR		24	/* offsetof(struct lwp, l_addr) */
 #define L_MD		28	/* offsetof(struct lwp, l_md) */
+#define L_MD_ASTPENDING	52	/* offsetof(struct lwp, l_md.md_astpending) */
+#define L_PROC		292 	/* offsetof(struct lwp, l_proc) */
 
 /*
  * Byte offsets related to struct mdlwp.
@@ -78,10 +81,20 @@
  * Byte offsets related to struct pcb.
  */
 #define U_PCB_CONTEXT	0	/* offsetof(struct pcb, pcb_context) */
-#define U_PCB_ONFAULT	64	/* offsetof(struct pcb, pcb_onfault) */ 
+#define U_PCB_ONFAULT	64	/* offsetof(struct pcb, pcb_onfault) */
 
 /*
- * Byte offsets related to pcb_context.
+ * Byte offsets related to struct proc.
+ */
+#define P_MD_SYSCALL	484	/* offsetof(struct proc, p_md.md_syscall) */
+
+/*
+ * Byte offsets related to struct cpu_info.
+ */
+#define CPU_INFO_CURLWP	260	/* offsetof(struct cpu_info, ci_lwp)	*/
+
+/*
+ * CPU context in the stack frame.
  */
 #define SF_REG_SR	0
 #define SF_REG_LR	4
@@ -95,11 +108,5 @@
 #define SF_REG_R1	36
 #define SF_REG_R0	40
 
-#define KERNFRAME_SIZ	(8 + 16 * 4 + 8)/* sizeof(struct kernframe) */
-
-#define TF_BASE	8	/* offsetof(struct kernframe, cf_frame) */
-
-#define FRAME_SIZ	( 16 * 4 + 8)	/* sizeof (struct frame)  */
-
-#define L_PROC	292 	/* offsetof(struct lwp, l_proc) */
-#define P_MD_SYSCALL 484	/* offsetof(struct proc, p_md.md_syscall) */
+#define FRAME_SR	0
+#define FRAME_PC	4

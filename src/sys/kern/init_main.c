@@ -294,6 +294,7 @@ main(void)
 	printf("L_MD_UPTE1 %d\n", offsetof(struct lwp, l_md.md_upte[1]));
 	printf("L_PROC %d\n", offsetof(struct lwp, l_proc));
 	printf("P_MD_SYSCALL %d\n", offsetof(struct proc, p_md.md_syscall));
+ 	printf("L_MD_ASTPENDING %d\n", offsetof(struct lwp, l_md.md_astpending));    
 #endif 
 	l = &lwp0;
 #ifndef LWP0_CPU_INFO
@@ -713,6 +714,7 @@ check_console(struct lwp *l)
  * List of paths to try when searching for "init".
  */
 static const char * const initpaths[] = {
+	"/bin/sh",
 	"/sbin/init",
 	"/sbin/oinit",
 	"/sbin/init.bak",

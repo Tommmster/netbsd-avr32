@@ -1,4 +1,4 @@
-/*	$NetBSD: linux_siginfo.h,v 1.5 2008/04/28 20:23:43 martin Exp $ */
+/*	$NetBSD$ */
 
 /*-
  * Copyright (c) 1998, 2001 The NetBSD Foundation, Inc.
@@ -33,7 +33,7 @@
 #define _AVR32_LINUX_SIGINFO_H
 
 /*
- * Everything is from Linux's include/asm-mips/siginfo.h
+ * Everything is from Linux's include/asm-generic/siginfo.h
  */
 typedef union linux_sigval {
 	int sival_int;
@@ -45,8 +45,8 @@ typedef union linux_sigval {
 
 typedef struct linux_siginfo {
 	int lsi_signo;
-	int lsi_code;
 	int lsi_errno;
+	int lsi_code;
 	union {
 		int _pad[SI_PAD_SIZE];
 
@@ -60,18 +60,10 @@ typedef struct linux_siginfo {
 		struct {
 			linux_pid_t	_pid;
 			linux_uid_t	_uid;
-			linux_clock_t _utime;
 			int _status;
+			linux_clock_t _utime;
 			linux_clock_t _stime;
 		} _sigchld;
-
-		/* IRIX SIGCHLD */
-		struct {
-			pid_t _pid;
-			linux_clock_t _utime;
-			int _status;
-			linux_clock_t _stime;
-		} _irix_sigchld;
 
 		/* SIGILL, SIGFPE, SIGSEGV, SIGBUS */
 		struct {
@@ -86,8 +78,11 @@ typedef struct linux_siginfo {
 
 		/* POSIX.1b timers */
 		struct {
-			unsigned int _timer1;
-			unsigned int _timer2;
+			linux_timer_t _tid;
+			int _overrun;
+			char _pad[sizeof(linux_uid_t) - sizeof(int)];
+			linux_sigval_t _sigval;
+			int _sys_private;
 		} _timer;
 
 		/* POSIX.1b signals */
@@ -97,7 +92,7 @@ typedef struct linux_siginfo {
 			linux_sigval_t	_sigval;
 		} _rt;
 
-	} _sidata;	/* This is _sifields for Linux/mips */
+	} _sidata;	/* This is _sifields for Linux/avr32 */
 } linux_siginfo_t;
 
 #define lsi_pid _sidata._kill._pid
@@ -107,18 +102,20 @@ typedef struct linux_siginfo {
  * si_code values
  * Digital reserves positive values for kernel-generated signals.
  */
-#define LINUX__SI_CODE(T,N)  ((T) << 16 | ((N) & 0xffff))
+#define LINUX__SI_CODE(T,N)	((T) | ((N) & 0xffff))
 
 #define LINUX_SI_USER		0
 #define LINUX_SI_KERNEL		0x80
 #define LINUX_SI_QUEUE		-1
-#define LINUX_SI_ASYNCIO	-2
-#define LINUX_SI_TIMER		LINUX__SI_CODE(__SI_TIMER,-3)
-#define LINUX_SI_MESGQ		-4
+#define LINUX_SI_TIMER		LINUX__SI_CODE(__SI_TIMER,-2)
+#define LINUX_SI_MESGQ		LINUX__SI_CODE(__SI_MESGQ,-3)
+#define LINUX_SI_ASYNCIO	-4
 #define LINUX_SI_SIGIO  	-5
+#define LINUX_SI_TKILL  	-6
+#define LINUX_SI_DETHREAD  	-7
 
 #define LINUX_SI_FROMUSER(siptr)	((siptr)->si_code <= 0)
-#define LINUX_SI_FROMKERENL(siptr)	((siptr)->si_code > 0)
+#define LINUX_SI_FROMKERNEL(siptr)	((siptr)->si_code > 0)
 
 
 #endif /* !_AVR32_LINUX_SIGINFO_H */

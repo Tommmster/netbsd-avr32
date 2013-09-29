@@ -29,8 +29,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _MIPS_LINUX_TERMIOS_H
-#define _MIPS_LINUX_TERMIOS_H
+#ifndef _AVR32_LINUX_TERMIOS_H
+#define _AVR32_LINUX_TERMIOS_H
 
 /*
  * From Linux's include/asm-avr32/termios.h */
@@ -41,86 +41,86 @@
 #define LINUX_NCCS 19
 
 /*
- * From Linux's include/asm-mips/ioctls.h
+ * From Linux's include/asm-avr32/ioctls.h
  */
 #define LINUX_tIOC		('t' << 8)
 
-#define LINUX_TCGETS		0x540d
-#define LINUX_TCSETS		0x540e
-#define LINUX_TCSETSW		0x540f
-#define LINUX_TCSETSF		0x5410
-#define LINUX_TCGETA		0x5401
-#define LINUX_TCSETA		0x5402
-#define LINUX_TCSETAW		0x5403
-#define LINUX_TCSETAF		0x5404
-#define LINUX_TCSBRK		0x5405
-#define LINUX_TCXONC		0x5406
-#define LINUX_TCFLSH		0x5407
-#define LINUX_TIOCEXCL		0x740d
-#define LINUX_TIOCNXCL		0x740e
-#define LINUX_TIOCSCTTY		0x5480
-#define LINUX_TIOCSPGRP		_LINUX_IOW('t', 118, int)
-#define LINUX_TIOCGPGRP		_LINUX_IOR('t', 119, int)
-#define LINUX_TIOCOUTQ		0x7472
-#define LINUX_TIOCSTI		0x5472
-#define LINUX_TIOCSWINSZ 	_LINUX_IOW('t', 103, struct linux_winsize)
-#define LINUX_TIOCGWINSZ 	_LINUX_IOR('t', 104, struct linux_winsize)
-#define LINUX_TIOCMGET		0x741d
-#define LINUX_TIOCMBIS		0x741b
-#define LINUX_TIOCMBIC		0x741c
-#define LINUX_TIOCMSET		0x741a
-#define LINUX_TIOCGSOFTCAR	0x5481
-#define LINUX_TIOCSSOFTCAR	0x5482
-#define LINUX_FIONREAD		0x467f
+#define LINUX_TCGETS		0x5401
+#define LINUX_TCSETS		0x5402
+#define LINUX_TCSETSW		0x5403
+#define LINUX_TCSETSF		0x5404
+#define LINUX_TCGETA		0x5405
+#define LINUX_TCSETA		0x5406
+#define LINUX_TCSETAW		0x5407
+#define LINUX_TCSETAF		0x5408
+#define LINUX_TCSBRK		0x5409
+#define LINUX_TCXONC		0x540a
+#define LINUX_TCFLSH		0x540b
+#define LINUX_TIOCEXCL		0x540c
+#define LINUX_TIOCNXCL		0x540d
+#define LINUX_TIOCSCTTY		0x540e
+#define LINUX_TIOCSPGRP		0x5410
+#define LINUX_TIOCGPGRP		0x540f
+#define LINUX_TIOCOUTQ		0x5411
+#define LINUX_TIOCSTI		0x5412
+#define LINUX_TIOCSWINSZ 	0x5414
+#define LINUX_TIOCGWINSZ 	0x5413
+#define LINUX_TIOCMGET		0x5415
+#define LINUX_TIOCMBIS		0x5416
+#define LINUX_TIOCMBIC		0x5417
+#define LINUX_TIOCMSET		0x5418
+#define LINUX_TIOCGSOFTCAR	0x5419
+#define LINUX_TIOCSSOFTCAR	0x541a
+#define LINUX_FIONREAD		0x541b
 #define LINUX_TIOCINQ		LINUX_FIONREAD
-#define LINUX_TIOCLINUX		0x5483
-#define LINUX_TIOCCONS		_IOW('t', 120, int)
-#define LINUX_TIOCGSERIAL	0x5484
-#define LINUX_TIOCSSERIAL	0x5485
-#define LINUX_TIOCPKT		0x5470
-#define LINUX_FIONBIO		0x667e
-#define LINUX_TIOCNOTTY		0x5471
-#define LINUX_TIOCSETD		(LINUX_tIOC | 1)
-#define LINUX_TIOCGETD		(LINUX_tIOC | 0)
+#define LINUX_TIOCLINUX		0x541c
+#define LINUX_TIOCCONS		0x541d
+#define LINUX_TIOCGSERIAL	0x541e
+#define LINUX_TIOCSSERIAL	0x541f
+#define LINUX_TIOCPKT		0x5420
+#define LINUX_FIONBIO		0x5421
+#define LINUX_TIOCNOTTY		0x5422
+#define LINUX_TIOCSETD		0x5423
+#define LINUX_TIOCGETD		0x5424
 #define LINUX_TCSBRKP		0x5425
 #define LINUX_TIOCTTYGSTRUCT	0x5426
 
-#define LINUX_FIONCLEX		0x6602 /* Linux sources: "need to be adjusted" */
-#define LINUX_FIOCLEX		0x6601
-#define LINUX_FIOASYNC		0x667d
-#define LINUX_TIOCSERCONFIG	0x5488
-#define LINUX_TIOCSERGWILD	0x5489
-#define LINUX_TIOCSERSWILD	0x548a
-#define LINUX_TIOCGLCKTRMIOS	0x548b
-#define LINUX_TIOCSLCKTRMIOS	0x548c
-#define LINUX_TIOCSERGSTRUCT	0x548d
-#define LINUX_TIOCSERGETLSR	0x548e
-#define LINUX_TIOCSERGETMULTI	0x548f
-#define LINUX_TIOCSERSETMULTI	0x5490
+#define LINUX_FIONCLEX		0x5450 
+#define LINUX_FIOCLEX		0x5451
+#define LINUX_FIOASYNC		0x5452
+#define LINUX_TIOCSERCONFIG	0x5453
+#define LINUX_TIOCSERGWILD	0x5454
+#define LINUX_TIOCSERSWILD	0x5455
+#define LINUX_TIOCGLCKTRMIOS	0x5456
+#define LINUX_TIOCSLCKTRMIOS	0x5457
+#define LINUX_TIOCSERGSTRUCT	0x5458
+#define LINUX_TIOCSERGETLSR	0x5459
+#define LINUX_TIOCSERGETMULTI	0x545a
+#define LINUX_TIOCSERSETMULTI	0x545b
 
 /*
  * linux_termios c_cc chars:
- * From Linux's include/asm-mips/termbits.h
+ * From Linux's include/asm-avr32/termbits.h
  */
 #define LINUX_VINTR 	0
 #define LINUX_VQUIT 	1
 #define LINUX_VERASE	2
 #define LINUX_VKILL 	3
-#define LINUX_VMIN 	4
+#define LINUX_VEOF	4
 #define LINUX_VTIME 	5
-#define LINUX_VEOL2 	6
+#define LINUX_VMIN 	6
 #define LINUX_VSWTC 	7
 #define LINUX_VSWTCH	LINUX_VSWTC
 #define LINUX_VSTART	8
 #define LINUX_VSTOP 	9
 #define LINUX_VSUSP	10
+#define LINUX_VEOL	11
 /* #define LINUX_VDSUSP	11 is not defined in Linux */
 #define LINUX_VREPRINT	12
 #define LINUX_VDISCARD	13
 #define LINUX_VWERASE	14
 #define LINUX_VLNEXT	15
-#define LINUX_VEOF	16
-#define LINUX_VEOL	17
+#define LINUX_VEOL2 	16
 
 /*
  * Old style linux_termio
@@ -138,7 +138,7 @@
 #define	LINUX_OLD_VSWTC		LINUX_VSWTC
 
 /*
- * All the remaining stuff is from  Linux's include/asm-mips/termbits.h
+ * All the remaining stuff is from  Linux's include/asm-avr32/termbits.h
  * Note that most of theses values are octal (one leading 0), not hex...
  * Linux c_iflag masks
  */
@@ -160,13 +160,13 @@
 /*
  * Linux c_oflag masks
  */
-#define LINUX_OPOST	0020000
+#define LINUX_OPOST	0000001
 #define LINUX_ONLCR	0000004
 #define LINUX_OLCUC	0000002
 #define LINUX_OCRNL	0000010
 #define LINUX_ONOCR	0000020
 #define LINUX_ONLRET	0000040
-#define LINUX_OFILL	0000040
+#define LINUX_OFILL	0000100
 #define LINUX_OFDEL	0000200
 #define LINUX_NLDLY	0000400
 #define LINUX_NL0	0000000
@@ -228,7 +228,7 @@
 #define LINUX_B921600	0010007
 #define LINUX_B1000000	0010010
 #define LINUX_B1152000	0010011
-#define LINUX_B1500000	0010011
+#define LINUX_B1500000	0010012
 #define LINUX_B2000000	0010013
 #define LINUX_B2500000	0010014
 #define LINUX_B3000000	0010015
@@ -261,12 +261,12 @@
 #define LINUX_ECHOK  	0000040
 #define LINUX_ECHONL 	0000100
 #define LINUX_NOFLSH 	0000200
-#define LINUX_TOSTOP 	0100000
+#define LINUX_TOSTOP 	0000400
 #define LINUX_ECHOCTL	0001000
 #define LINUX_ECHOPRT	0002000
 #define LINUX_ECHOKE 	0004000
-#define LINUX_FLUSHO 	0020000
+#define LINUX_FLUSHO 	0010000
 #define LINUX_PENDIN 	0040000
-#define LINUX_IEXTEN 	0000400
+#define LINUX_IEXTEN 	0100000
 
-#endif /* !_MIPS_LINUX_TERMIOS_H */
+#endif /* !_AVR32_LINUX_TERMIOS_H */

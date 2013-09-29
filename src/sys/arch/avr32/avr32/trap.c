@@ -34,7 +34,8 @@
 #include <sys/systm.h>
 #include <sys/user.h>
 #include <sys/savar.h>
-
+#include <sys/syscall.h>
+#include <sys/ktrace.h>
 #include <uvm/uvm_extern.h>
 
 #include <avr32/proc.h>
@@ -50,6 +51,9 @@
 #define TRAPTYPE(ecr)	(ecr)
 #define KERNLAND(x)	((uint32_t)(x) >= VM_MIN_KERNEL_ADDRESS)
 #define LENGTH(x)	(sizeof((x)) / sizeof((x)[0]))
+
+#define AVR32_READ_ONLY_PTE(entry) \
+	(((entry) & AVR32_PG_ACCESS_RW) == 0) /* XXX */
 
 const char *trap_type[] = {
 	"unrecoverable exception",      /* evba + 0x00  */
@@ -106,10 +110,22 @@ const char *exec_mode[] = {
 	"nmi",		/* AVR32_EXEC_MODE_NMI */
 };
 
+void trap(unsigned int, vaddr_t, struct trapframe *); 
+void ast(unsigned int);
+
+/*
+ * fork syscall returns directly to user process via lwp_trampoline(),
+ * which will be called the very first time when child gets running.
+ */
 void
 child_return(void *arg)
 {
-	panic("child_return: notyet");	
+	struct lwp *l = arg;
+	struct frame *frame = (struct frame *)l->l_md.md_regs;
+
+	frame->f_regs[_R_R12] = 0;
+	userret(l);
+	ktrsysret(SYS_fork, 0, 0);
 }
 
 /*
@@ -134,7 +150,7 @@ trap(unsigned int cause, vaddr_t vaddr, struct trapframe *frame)
 	if ((type = TRAPTYPE(cause)) >= LENGTH(trap_type))
 		panic("trap: unknown trap type %d", type);
 
-#if 1 /* XXXAVR32 */
+#if 0 /* XXXAVR32 */
 	printf("trap: %s in %s mode\n",
 		trap_type[TRAPTYPE(cause)],
 		exec_mode[EXECMODE(status)]);
@@ -166,10 +182,13 @@ trap(unsigned int cause, vaddr_t vaddr, struct trapframe *frame)
 		} else
 			printf("curlwp == NULL ");
 		printf("ksp=%p\n", &status);
+		panic("trap: dopanic: notyet");
 #if defined(DDB)
+#error DDB: notyet
 		kdb_trap(type, (mips_reg_t *) frame);
 		/* XXX force halt XXX */
 #elif defined(KGDB)
+#error KGDB: notyet
 		{
 			struct frame *f = (struct frame *)&ddb_regs;
 			extern mips_reg_t kgdb_cause, kgdb_vaddr;
@@ -189,36 +208,12 @@ trap(unsigned int cause, vaddr_t vaddr, struct trapframe *frame)
 				return;
 			}
 		}
-#else
-		panic("trap: dopanic: notyet");
 #endif
 		/*NOTREACHED*/
 	case T_DTLB_PROT:
-		panic("DTLB_PROT: notyet %x", vaddr);
-	case T_DTLB_PROT + T_USER:
-		panic("DTLB_PROT + T_USER: notyet %x", vaddr);
-	case T_TLB_PROT:
-	case T_TLB_PROT + T_USER:
-		#if 1
-		panic("T_TLB_PROT not yet. va 0x%x, TLBEHI[ASID] 0x%X", vaddr, AVR32_MFSR(SR_TLBEHI) & 0xFF);
-		pmap_t map;
-		if (KERNLAND(vaddr)){
-#if 0
-			pt_entry_t *pte = kvtopte(vaddr);
-			unsigned entry = pte->pt_entry;
-				
-			if (!avr32_pte_v(entry)) {
-				panic("ktlbprot: Invalid pte");
-			}
-			printf("T_TLB_MOD. pfn: %x, access type: %x\n", entry & AVR32_PG_FRAME, pte->pt_avr32_pte.pg_ap);
-			/* Need to call uvm_fault ? */	
-			uvm_fault(kernel_map, vaddr, VM_PROT_EXECUTE);
-			avr32_tlb_dump();
-#endif 
-		} else {
-			panic("userspace");
-		}
-		#endif 	
+		panic("trap: T_DTLB_PROT: notyet");
+	case T_DTLB_PROT+T_USER:
+		panic("trap: T_DTLB_PROT+T_USER: notyet");
 	case T_TLB_MOD:
 		panic("trap: T_TLB_MOD va %x notyet", vaddr);
 #if notyet
@@ -253,11 +248,11 @@ trap(unsigned int cause, vaddr_t vaddr, struct trapframe *frame)
 		/*FALLTHROUGH*/
 #endif
 	case T_TLB_MOD+T_USER: 
-		panic("trap: T_TLB_MOD+T_USER: notyet");
-#if notyet
 	    {
 		pt_entry_t *pte;
 		unsigned entry;
+		register_t tlbehi;
+		register_t tlbelo;
 		paddr_t pa;
 		pmap_t pmap;
 
@@ -265,21 +260,25 @@ trap(unsigned int cause, vaddr_t vaddr, struct trapframe *frame)
 		if (!(pte = pmap_segmap(pmap, vaddr)))
 			panic("utlbmod: invalid segmap");
 		pte += (vaddr >> PGSHIFT) & (NPTEPG - 1);
-
 		entry = pte->pt_entry;
-		if (!avr32_pte_v(entry))
+		if (!(entry & AVR32_PTE_VALID) || (entry & AVR32_PG_DIRTY))
 			panic("utlbmod: invalid pte");
 
-		if (entry & avr32_pte_ropage_bit()) {
-			/* write to read only page */
-			ftype = VM_PROT_WRITE;
-			goto pagefault;
-		}
-		/* entry |= mips_pg_m_bit();  XXXAVR32 Do it on tlbarlo/ tlbarhi? */
+		/*
+		 * XXX T_TLB_MOD implies that the access checks on the
+		 * page passed. The following expression is an assertion
+		 * over this behavior.
+		 */
+		if (AVR32_READ_ONLY_PTE(entry))
+			panic("utlbmod: TLB modified on read-only page");
+		entry |= AVR32_PG_DIRTY;
 		pte->pt_entry = entry;
-		vaddr = (vaddr & ~PGOFSET) |
-			(pmap->pm_asid << AVR32_TLB_PID_SHIFT);
-		MachTLBUpdate(vaddr | AVR32_PG_VALID | pmap->pm_asid, entry);
+		vaddr = (vaddr & ~PGOFSET) | pmap->pm_asid;
+		tlbehi = avr32_vaddr_to_tlbvpn(vaddr) 
+		       | AVR32_PG_VALID 
+		       | pmap->pm_asid;
+		tlbelo = entry;
+		MachTLBUpdate(tlbehi, tlbelo);
 		pa = avr32_tlbpfn_to_paddr(entry);
 		if (!IS_VM_PHYSADDR(pa)) {
 			printf("utlbmod: va %#lx pa %#llx\n",
@@ -291,7 +290,12 @@ trap(unsigned int cause, vaddr_t vaddr, struct trapframe *frame)
 			userret(l);
 		return; /* GEN */
 	    }
-#endif
+	case T_ITLB_MISS:
+		/*
+		 * It is an error for the kernel to access user space except
+		 * through the copyin/copyout routines.
+		 */
+		goto dopanic;
 	case T_TLB_LD_MISS:
 	case T_TLB_ST_MISS:
 		ftype = (type == T_TLB_LD_MISS) ? VM_PROT_READ : VM_PROT_WRITE;
@@ -305,23 +309,26 @@ trap(unsigned int cause, vaddr_t vaddr, struct trapframe *frame)
 			goto dopanic;
 		/* check for fuswintr() or suswintr() getting a page fault */
 		if (l->l_addr->u_pcb.pcb_onfault == (void *)fswintrberr) {
-			panic("%s %s %d trap : notyet", __FILE__, __FUNCTION__, __LINE__);
-			#ifdef notyet
+			panic("trap: *wintr(): notyet");
+#ifdef notyet
 			frame->tf_regs[TF_EPC] = (int)fswintrberr;
 			return; /* KERN */
-			#endif
+#endif
 		}
 		goto pagefault;
-		panic("trap: T_TLB_LD_MISS/T_TLB_ST_MISS: notyet");
+	case T_TLB_EX_PROT+T_USER:
+		panic("trap: T_TLB_EX_PROT+T_USER: notyet");
 	case T_ITLB_MISS+T_USER:
-		ftype = VM_PROT_READ;
+		ftype = VM_PROT_READ | VM_PROT_EXECUTE;
 		goto pagefault;
 	case T_TLB_LD_MISS+T_USER:
-		printf("TLB_LD_MISS + T_USER: vaddr: %x, pmap->pm_asid %x\n", vaddr, p->p_vmspace->vm_map.pmap->pm_asid);
 		ftype = VM_PROT_READ;
 		goto pagefault;
+	case T_TLB_WR_PROT:
+	case T_TLB_WR_PROT+T_USER:
 	case T_TLB_ST_MISS+T_USER:
 		ftype = VM_PROT_WRITE;
+		goto pagefault;
 	pagefault: ;
 	    {
 		vaddr_t va;
@@ -338,11 +345,10 @@ trap(unsigned int cause, vaddr_t vaddr, struct trapframe *frame)
 			l->l_pflag |= LP_SA_PAGEFAULT;
 		}
 
-		if (p->p_emul->e_fault){
-			panic("trap. p->p_emul->e_fault notyet");
+		if (p->p_emul->e_fault) {
+			panic("trap: p->p_emul->e_fault: notyet");
 			rv = (*p->p_emul->e_fault)(p, va, ftype);
-		}
-		else
+		} else
 			rv = uvm_fault(map, va, ftype);
 				
 #ifdef VMFAULT_TRACE
@@ -358,9 +364,8 @@ trap(unsigned int cause, vaddr_t vaddr, struct trapframe *frame)
 		 * error.
 		 */
 		if ((void *)va >= vm->vm_maxsaddr) {
-			if (rv == 0){
+			if (rv == 0)
 				uvm_grow(p, va);
-			}
 			else if (rv == EACCES)
 				rv = EFAULT;
 		}
@@ -382,11 +387,10 @@ trap(unsigned int cause, vaddr_t vaddr, struct trapframe *frame)
 			ksi.ksi_code = 0;
 		} else {
 			if (rv == EACCES) {
-				panic("trap: SIGBUS");
+				panic("trap: SIGBUS: notyet");
 				ksi.ksi_signo = SIGBUS;
 				ksi.ksi_code = BUS_OBJERR;
 			} else {
-				panic("trap: SIGSEV");
 				ksi.ksi_signo = SIGSEGV;
 				ksi.ksi_code = SEGV_MAPERR;
 			}
@@ -402,20 +406,12 @@ trap(unsigned int cause, vaddr_t vaddr, struct trapframe *frame)
 		
 		va = trunc_page(vaddr);
 		rv = uvm_fault(kernel_map, va, ftype);
-#if 0
-		avr32_tlb_dump();
-		printf("[XXXAVR32] r0: 0x%08x\t r1:  0x%08x\t r2:  0x%08x\t\n", frame->tf_regs[15], frame->tf_regs[14], frame->tf_regs[13]);
-		printf("[XXXAVR32] r3: 0x%08x\t r4:  0x%08x\t r5:  0x%08x\t\n", frame->tf_regs[12], frame->tf_regs[11], frame->tf_regs[10]);
-		printf("[XXXAVR32] r6: 0x%08x\t r7:  0x%08x\t r8:  0x%08x\t\n", frame->tf_regs[9], frame->tf_regs[8], frame->tf_regs[7]);
-		printf("[XXXAVR32] r9: 0x%08x\t r10: 0x%08x\t r11: 0x%08x\t r12:0x%08x\t\n", frame->tf_regs[6], frame->tf_regs[5], frame->tf_regs[4], frame->tf_regs[3]);
-		printf("[XXXAVR32] lr: 0x%08x\t opc: 0x%08x\t sr:  0x%08x\t\n", frame->tf_regs[2], frame->tf_regs[1], frame->tf_regs[0]);
-#endif
 		if (rv == 0)
 			return; /* KERN */
 		/*FALLTHROUGH*/
 	    }
-	case T_ADDR_ERR_LD:	/* misaligned access */
-	case T_ADDR_ERR_ST:	/* misaligned access */
+	case T_ADDR_ERR_RD:	/* misaligned access */
+	case T_ADDR_ERR_WR:	/* misaligned access */
 	case T_BUS_ERR_LD_ST:	/* BERR asserted to CPU */
 	copyfault:
 		panic("trap: copyfault: notyet");
@@ -425,17 +421,14 @@ trap(unsigned int cause, vaddr_t vaddr, struct trapframe *frame)
 		frame->tf_regs[TF_EPC] = (intptr_t)l->l_addr->u_pcb.pcb_onfault;
 		return; /* KERN */
 #endif
-#if notyet
-	case T_ADDR_ERR_LD+T_USER:	/* misaligned or kseg access */
-	case T_ADDR_ERR_ST+T_USER:	/* misaligned or kseg access */
-	case T_BUS_ERR_IFETCH+T_USER:	/* BERR asserted to CPU */
-	case T_BUS_ERR_LD_ST+T_USER:	/* BERR asserted to CPU */
+	case T_ADDR_ERR_RD+T_USER:	/* misaligned access */
+	case T_ADDR_ERR_WR+T_USER:	/* misaligned access */
 		ksi.ksi_trap = type & ~T_USER;
 		ksi.ksi_signo = SIGSEGV; /* XXX */
 		ksi.ksi_addr = (void *)vaddr;
 		ksi.ksi_code = SEGV_MAPERR; /* XXX */
 		break; /* SIGNAL */
-
+#if notyet
 	case T_BREAK:
 		panic("trap: T_BREAK: notyet");
 #if defined(DDB)
@@ -553,15 +546,43 @@ trap(unsigned int cause, vaddr_t vaddr, struct trapframe *frame)
 		break; /* SIGNAL */
 #endif
 	}
-	panic("trap: post-switch: notyet");
-#if notyet
+
 	fp = (struct frame *)l->l_md.md_regs;
-	fp->f_regs[_R_CAUSE] = cause;
-	fp->f_regs[_R_BADVADDR] = vaddr;
+	fp->f_regs[_R_R12] = cause;
+	fp->f_regs[_R_R11] = vaddr;
 	(*p->p_emul->e_trapsignal)(l, &ksi);
 	if ((type & T_USER) == 0)
 		panic("trapsignal");
 	userret(l);
-#endif
 	return;
+}
+
+/*
+ * Handle asynchronous software traps.
+ * This is called from MachUserIntr() either to deliver signals or
+ * to make involuntary context switch (preemption).
+ */
+void
+ast(unsigned pc)
+{
+	struct lwp *l = curlwp;
+
+	while (l->l_md.md_astpending) {
+		uvmexp.softs++;
+		l->l_md.md_astpending = 0;
+
+		if (l->l_pflag & LP_OWEUPC) {
+			l->l_pflag &= ~LP_OWEUPC;
+			ADDUPROF(l);
+		}
+
+		userret(l);
+
+		if (curcpu()->ci_want_resched) {
+			/*
+			 * We are being preempted.
+			 */
+			preempt();
+		}
+	}
 }

@@ -147,6 +147,8 @@ extern u_int avr32_pdcache_way_mask;
 extern u_int avr32_cache_alias_mask;
 extern u_int avr32_cache_prefer_mask;
 
+extern int avr32_cache_virtual_alias;
+
 /*
  * XXX XXX XXX THIS SHOULD NOT EXIST XXX XXX XXX
  */

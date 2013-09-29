@@ -46,7 +46,7 @@
 #include <compat/linux/arch/arm/linux_signal.h>
 #elif defined(__amd64__)
 #include <compat/linux/arch/amd64/linux_signal.h>
-#elif defined (__avr32__)
+#elif defined(__avr32__)
 #include <compat/linux/arch/avr32/linux_signal.h>
 #endif
 

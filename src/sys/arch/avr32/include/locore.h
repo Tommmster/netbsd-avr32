@@ -1,4 +1,4 @@
-/*	$NetBSD$	*/  
+/*	$NetBSD$	*/
 
 /*-
  * Copyright (c) 2013 The NetBSD Foundation, Inc.
@@ -79,6 +79,8 @@ void avr32_tbis(uint32_t, uint32_t);
 void avr32_count_write(unsigned int value);
 void avr32_compare_write(unsigned int value);
 unsigned int avr32_count_read(void);
+
+void avr32_pagecopy(void *dst, void *src);
 
 #define TF_SR	0
 #define TF_PC	1

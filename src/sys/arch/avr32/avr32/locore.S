@@ -1,4 +1,4 @@
-/* 	$NetBSD$	 */
+/* 	$NetBSD$	*/
 
 /*-
  * Copyright (c) 2013 The NetBSD Foundation, Inc.
@@ -35,100 +35,208 @@
 #include "assym.h"
 
 /*
- * struct lwp * cpu_switchto(struct lwp *l1, struct lwp *l2)
- * Returns the lwp we're switching from.
+ * struct lwp *cpu_switchto(struct lwp *cur, struct lwp *next)
+ *
+ * Switch to the specified next LWP. Arguments:
+ *
+ * 	r12	the current LWP
+ * 	r11	the LWP to switch to
+ *
+ * Returns:
+ *
+ * 	r12	the LWP we have switched from
  */
-	.align 1
-	.text
-	.globl cpu_switchto
 
-cpu_switchto:
+ENTRY(cpu_switchto)
 	/*
-	 * Save the old context, unless it is exiting.
+	 * Save old context, unless the LWP is exiting.
 	 */
 	cp.w	r12, 0
 	breq	1f
 
 	ld.w	r8, r12[L_ADDR]
-
 	sub	r8, -(U_PCB_CONTEXT + SF_REG_SR)
+
 	mfsr	r9, SR_STATUS
 	nop
+	andh	r9, hi(AVR32_STATUS_IM | AVR32_STATUS_EM), COH
 
-	andh	r9, hi(~(AVR32_STATUS_IM | AVR32_STATUS_EM)), COH
 	st.w	r8++, r9
-	stm	r8, r0-r7,sp,lr
+	stm	r8, r0,r1,r2,r3,r4,r5,r6,r7,sp,lr
 
-#ifdef IPL_ICU_MASK
-#error IPL_ICU_MASK
-#endif
+	/* Save current ASID. */
+	mfsr	r7, SR_TLBEHI
+	nop
+	andl	r7, lo(AVR32_PG_ASID)
 
-1:	lda.w	r0, avr32_curlwp 
+	/*
+	 * Switch to new context.
+	 */
+1:	lda.w	r0, avr32_curlwp
 	st.w	r0[0], r11
 
 	/*
-	 * Switch to new context
-	 * Load the UPTEs from the new process into the entry #0 and entry #1
+	 * Wiredown the USPACE of newproc with TLB entry #0 and #1. Check
+	 * if target USPACE is already refered by any TLB entry before
+	 * doing that, and make sure TBIS(them) in the case.
 	 */
+	ld.w	r0, r11[L_ADDR]
+	lddpc	r1, L_AVR32_P2_START
+	cp.w	r0, r1
+	brlt	resume
 
-	/* XXX Should invalidate relevant entries only. */
-	mfsr	r0, SR_MMUCR	
-	nop
-	sbr	r0, 0x2
-	andl	r0, lo(~0x0000C000)
-	andh	r0, hi(~0x00070000)
-	mtsr	SR_MMUCR, r0
-	
-	ld.w	r1, r11[L_MD_UPTE_0]	
-	andh	r1, hi(~(AVR32_PTE_VALID | AVR32_PTE_WIRED))
-	orl	r1, lo(AVR32_PG_GLOBAL)
-
-	ld.w	r0, r11[L_ADDR]	/* newlwp->l_addr */
-	andl	r0, lo(AVR32_PG_VPN)
+	ld.w	r0, r11[L_ADDR]
+	andl	r0, lo(~(AVR32_PG_ASID | AVR32_PG_INSTR))
 	orl	r0, lo(AVR32_PG_VALID)
-	
-	mtsr	SR_TLBELO, r1	
 	mtsr	SR_TLBEHI, r0
-	sub	pc, -2		/* Flush pipeline on ASID change */
+	sub	pc, -2
+	nop
+	tlbs
+	nop
+	mfsr	r1, SR_MMUCR
+	nop
+	andl	r1, lo(AVR32_MMUCR_NF), COH
+	cp.w	r1, 0
+	brne	entry0set /* Not found. */
+
+	lddpc	r0, L_AVR32_TLBEHI_DISABLED
+	mtsr	SR_TLBEHI, r0
+	sub	pc, -2
+	mov	r1, 0
+	mtsr	SR_TLBELO, r1
+
+	nop
+	nop
+	nop
+	nop
 	nop
 	tlbw
+	sub	pc, -2
+
+entry0set:
+	/* Lock down the first entry in the TLB. */
+	lddpc	r0, L_MMUCR_LOCK_DOWN_0
+	mtsr	SR_MMUCR, r0
 	nop
 
-	ld.w	r1, r11[L_MD_UPTE_1]	
+	ld.w	r0, r11[L_ADDR]
+	andl	r0, lo(~(AVR32_PG_ASID | AVR32_PG_INSTR))
+	orl	r0, lo(AVR32_PG_VALID)
+	mtsr	SR_TLBEHI, r0
+	sub	pc, -2
+	nop
+
+	ld.w	r1, r11[L_MD_UPTE_0]
 	andh	r1, hi(~(AVR32_PTE_VALID | AVR32_PTE_WIRED))
 	orl	r1, lo(AVR32_PG_GLOBAL)
-
-	ld.w	r0, r11[L_ADDR]	/* newlwp->l_addr */
-	sub	r0, -PAGE_SIZE
-	andl	r0, lo(AVR32_PG_VPN)
-	orl	r0, lo(AVR32_PG_VALID | AVR32_PG_GLOBAL)
-	
-	mtsr	SR_TLBELO, r1	
-	mtsr	SR_TLBEHI, r0
-	sub	pc, -2		/* Flush pipeline on ASID change */
+	mtsr	SR_TLBELO, r1
+	nop
+	nop
+	nop
+	nop
 	nop
 	tlbw
+	sub	pc, -2
 	nop
-#if notyet
-	/* 
-	 * Check for restartable atomic sequences. 
-	 */
-#endif
-	/*
-	 * New context is now active. Restore U_PCB registers.
-	 */
-	ld.w	r8, r11[L_ADDR]	/* r0: newlwp->l_addr */
-	ld.w	r9, r8++
-	andh	r9, hi(AVR32_STATUS_IM | AVR32_STATUS_EM), COH
+	nop
+	nop
 
+	ld.w	r0, r11[L_ADDR]
+	sub	r0, -PAGE_SIZE
+	andl	r0, lo(~(AVR32_PG_ASID | AVR32_PG_INSTR))
+	orl	r0, lo(AVR32_PG_VALID)
+	mtsr	SR_TLBEHI, r0
+	sub	pc, -2
+	nop
+	tlbs
+	nop
+	nop
+	nop
+	nop
+	nop
+
+	mfsr	r1, SR_MMUCR
+	nop
+	andl	r1, lo(AVR32_MMUCR_NF), COH
+	cp.w	r1, 0
+	brne	entry1set /* Not found. */
+
+	lddpc	r0, L_AVR32_TLBEHI_DISABLED
+	mtsr	SR_TLBEHI, r0
+	sub	pc, -2
+	mov	r1, 0
+	mtsr	SR_TLBELO, r1
+
+	nop
+	nop
+	nop
+	nop
+	nop
+	tlbw
+	sub	pc, -2
+
+entry1set:
+	/* Lock down the second entry in the TLB. */
+	lddpc	r0, L_MMUCR_LOCK_DOWN_1
+	mtsr	SR_MMUCR, r0
+	nop
+
+	ld.w	r0, r11[L_ADDR]
+	sub	r0, -PAGE_SIZE
+	andl	r0, lo(~(AVR32_PG_ASID | AVR32_PG_INSTR))
+	orl	r0, lo(AVR32_PG_VALID)
+	mtsr	SR_TLBEHI, r0
+	sub	pc, -2
+	nop
+
+	ld.w	r1, r11[L_MD_UPTE_1]
+	andh	r1, hi(~(AVR32_PTE_VALID | AVR32_PTE_WIRED))
+	orl	r1, lo(AVR32_PG_GLOBAL)
+	mtsr	SR_TLBELO, r1
+	nop
+
+	nop
+	nop
+	nop
+	nop
+	nop
+	tlbw
+	sub	pc, -2
+
+resume:
+	/* Restore the ASID register. */
+	mtsr	SR_TLBEHI, r7
+	sub	pc, -2
+	nop
+
+	/* New context is now active */
+	lda.w	r8, avr32_curlwp
+	ld.w	r8, r8[0]
+
+	ld.w	r8, r8[L_ADDR]
+	sub	r8, -(U_PCB_CONTEXT + SF_REG_SR)
+	ld.w	r9, r8++
 	mfsr	r10, SR_STATUS
 	nop
-	or	r9, r10
-	mtsr	SR_STATUS, r9
-	frs			
+	andh	r10, hi(~(AVR32_STATUS_IM | AVR32_STATUS_EM))
+	or	r10, r9
+	mtsr	SR_STATUS, r10
+	frs
 	sub	pc, -2
-	ldm	r8++, r0-r7,sp,pc
-	.size cpu_switchto, . - cpu_switchto
+
+	ldm	r8++, r0,r1,r2,r3,r4,r5,r6,r7,sp,lr
+	mov	pc, lr
+END(cpu_switchto)
+
+	.align 2
+L_AVR32_TLBEHI_DISABLED:
+	.long AVR32_P1_START & AVR32_PG_VPN
+L_AVR32_P2_START:
+	.long AVR32_P2_START
+L_MMUCR_LOCK_DOWN_0:
+	.long AVR32_MMUCR_DRP(0) | AVR32_MMUCR_DLA(2) | AVR32_MMUCR_SMMU | AVR32_MMUCR_PMMU
+L_MMUCR_LOCK_DOWN_1:
+	.long AVR32_MMUCR_DRP(1) | AVR32_MMUCR_DLA(2) | AVR32_MMUCR_SMMU | AVR32_MMUCR_PMMU
 
 /*
  * lwp_trampoline
@@ -141,16 +249,10 @@ cpu_switchto:
  * handled in a normal way.  No need to save any registers although this
  * calls another.
  */
-	.align 1
-	.text
-	.globl lwp_trampoline
-
-lwp_trampoline:
+ENTRY(lwp_trampoline)
 	/* Call lwp_startup(), with args from cpu_switchto()/cpu_setfunc() */
-	lda.w	r10, lwp_startup
-	lda.w	r11, avr32_curlwp
-	ld.w	r11, r11[0]
-	icall	r10
+	mov	r11, r2
+	rcall	lwp_startup
 
 	/* Call the routine specified by cpu_setfunc() */
 	mov	r12, r1
@@ -158,32 +260,70 @@ lwp_trampoline:
 
 	/* Return to user (won't happen if a kernel thread) */
 
-	ld.w	r0, sp++	
-	mtsr	SR_RSR_SUP, r0
+	/*
+	 * XXX Interrupts could be enabled at this point. Disable them to
+	 * avoid racing against interrupts over the system registers.
+	 * 
+	 * Exceptions are disabled to assert the lockdown of the u-area.
+	 */
+	mfsr	r0, SR_STATUS
+	nop
+	orh	r0, hi(AVR32_STATUS_GM | AVR32_STATUS_EM)
+	mtsr	SR_STATUS, r0
+	sub	pc, -2
 	nop
 
-	ld.w	r0, sp++
-	mtsr	SR_RAR_SUP, r0
+	mfsr	r8, SR_STATUS
+	andh	r8, hi(AVR32_STATUS_MMASK), COH
 	nop
+	mov	r9, 0
+	orh	r9, hi(AVR32_STATUS_MKERN)
+	cp.w	r8, r9
+	breq	1f
 
+	mov	r9, 0
+	orh	r9, hi(AVR32_STATUS_MXCPT)
+	cp.w	r8, r9
+	breq	2f
+
+	mov	r9, 0
+	orh	r9, hi(AVR32_STATUS_MINT2)
+	cp.w	r8, r9
+	breq	3f
+
+	stm	--sp, r8
+	PANIC("lwp_trampoline: unhandled execution mode: 0x%x")
+
+	/* Return from supervisor mode. */
+1:	ldm	sp++, r8-r9
+	mtsr	SR_RAR_SUP, r8
+	mtsr	SR_RSR_SUP, r9
+	nop
 	ldmts	sp++, r0-lr
-	rets	
+	rets
 
-	.size lwp_trampoline, . - lwp_trampoline
+	/* Return from exception mode. */
+2:	ldm	sp++, r8-r9
+	mtsr	SR_RAR_EX, r8
+	mtsr	SR_RSR_EX, r9
+	nop
+	ldmts	sp++, r0-lr
+	rete
 
-L_LWP_TRAMPOLINE_PANIC:
-	.asciz "lwp_trampoline %x"
+	/* Return from INT2 mode. */
+3:	ldm	sp++, r8-r9
+	mtsr	SR_RAR_INT2, r8
+	mtsr	SR_RSR_INT2, r9
+	nop
+	ldmts	sp++, r0-lr
+	rete
+END(lwp_trampoline)
 
 /*
  * Support routines for the spl(9) infrastructure follow.
  */
 
-	.align 2
-	.text
-	.globl _spllower
-
-_spllower:
-#if 1
+ENTRY(_spllower)
 	/* Fetch a copy of the status register. */
 	mfsr	r8, SR_STATUS
 	nop
@@ -207,21 +347,9 @@ _spllower:
 
 	/* Return. */
 	mov	pc, lr
-#else
-	lda.w	r12, L_spllower_msg
-	rcall	panic
+END(_spllower)
 
-	.section .data
-L_spllower_msg:
-	.asciz "_spllower"
-#endif
-
-	.align 2
-	.text
-	.globl _splraise
-
-_splraise:
-#if 1
+ENTRY(_splraise)
 	/* Fetch a copy of the status register. */
 	mfsr	r8, SR_STATUS
 	nop
@@ -244,21 +372,9 @@ _splraise:
 
 	/* Return. */
 	mov	pc, lr
-#else
-	lda.w	r12, L_splraise_msg
-	rcall	panic
+END(_splraise)
 
-	.section .data
-L_splraise_msg:
-	.asciz "_splraise"
-#endif
-
-	.align 2
-	.text
-	.globl _splset
-
-_splset:
-#if 1
+ENTRY(_splset)
 	/* Fetch status register. */
 	mfsr	r8, SR_STATUS
 	nop
@@ -283,32 +399,19 @@ _splset:
 
 	/* Return. */
 	mov	pc, lr
-#else
-	lda.w	r12, L_splset_msg
-	rcall	panic
-#endif
-	.section .data
-L_splset_msg:
-	.asciz "_splset %x\n"
+END(_splset)
 
-	.align 2
-	.text
-	.globl _splget
+ENTRY(avr32_pagecopy)
+	stm	--sp, lr
+	mov	r10, PAGE_SIZE
+	rcall	memcpy
+	ldm	sp++, pc
+END(avr32_pagecopy)
 
-_splget:
-	lda.w	r12, L_splget_msg
-	rcall	panic
+ENTRY(_splget)
+	PANIC("_splget: notyet")
+END(_splget)
 
-	.section .data
-L_splget_msg:
-	.asciz "_splget"
-
-	.section .text,"ax",@progbits
-	.global _splnone
-_splnone:
-	lda.w	r12, L_splnone_msg
-	rcall	panic
-
-	.section .data
-L_splnone_msg:
-	.asciz "_splnone"
+ENTRY(_splnone)
+	PANIC("_splnone: notyet")
+END(_splnone)

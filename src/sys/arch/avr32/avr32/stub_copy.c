@@ -40,13 +40,6 @@ kcopyerr(void)
 }
 
 int
-subyte(void *s, int b)
-{
-	panic("subyte: notyet");
-	return 0;
-}
-
-int
 suswintr(void *s, short h)
 {
 	panic("suswintr: notyet");

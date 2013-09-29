@@ -30,135 +30,19 @@
  */
 
 #include <sys/param.h>
-#include <sys/systm.h>
 #include <sys/mutex.h>
 
-unsigned int
-atomic_cas_uint(volatile unsigned int *ptr, unsigned int old, unsigned int new)
+void
+mb_memory(void)
 {
-	unsigned int ret;
-
-	ret = *ptr;
-
-	if (ret == old)
-		*ptr = new;
-
-	return ret;
 }
 
-unsigned int
-_atomic_cas_uint(volatile unsigned int *ptr, unsigned int old, unsigned int new)
+void
+mb_read(void)
 {
-	unsigned int ret;
-
-	ret = *ptr;
-
-	if (ret == old)
-		*ptr = new;
-
-	return ret;
 }
 
-void *
-atomic_cas_ptr(volatile void **ptr, void *old, void *new)
+void
+mb_write(void)
 {
-	volatile void *ret;
-
-	ret = *ptr;
-
-	if (ret == old)
-		*ptr = new;
-
-	return (void *)ret;
-}
-
-void *
-_atomic_cas_ptr(volatile void **ptr, void *old, void *new)
-{
-	volatile void *ret;
-
-	ret = *ptr;
-
-	if (ret == old)
-		*ptr = new;
-
-	return (void *)ret;
-}
-
-uint32_t
-atomic_cas_32(volatile uint32_t *ptr, uint32_t old, uint32_t new)
-{
-	uint32_t ret;
-
-	ret = *ptr;
-
-	if (ret == old)
-		*ptr = new;
-
-	return ret;
-}
-
-uint32_t
-_atomic_cas_32(volatile uint32_t *ptr, uint32_t old, uint32_t new)
-{
-	uint32_t ret;
-
-	ret = *ptr;
-
-	if (ret == old)
-		*ptr = new;
-
-	return ret;
-}
-
-uint32_t
-atomic_cas_ptr_ni(volatile uint32_t *ptr, uint32_t old, uint32_t new)
-{
-	uint32_t ret;
-
-	ret = *ptr;
-
-	if (ret == old)
-		*ptr = new;
-
-	return ret;
-}
-
-uint32_t
-_atomic_cas_ptr_ni(volatile uint32_t *ptr, uint32_t old, uint32_t new)
-{
-	uint32_t ret;
-
-	ret = *ptr;
-
-	if (ret == old)
-		*ptr = new;
-
-	return ret;
-}
-
-uint32_t
-atomic_cas_ulong(volatile uint32_t *ptr, uint32_t old, uint32_t new)
-{
-	uint32_t ret;
-
-	ret = *ptr;
-
-	if (ret == old)
-		*ptr = new;
-
-	return ret;
-}
-
-uint32_t
-_atomic_cas_ulong(volatile uint32_t *ptr, uint32_t old, uint32_t new)
-{
-	uint32_t ret;
-
-	ret = *ptr;
-
-	if (ret == old)
-		*ptr = new;
-
-	return ret;
 }

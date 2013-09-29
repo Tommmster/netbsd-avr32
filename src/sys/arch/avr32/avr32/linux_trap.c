@@ -1,3 +1,5 @@
+/*	$NetBSD$	*/
+
 /*
  * by Christos Zoulas and Emmanuel Dreyfus.
  *
@@ -40,6 +42,5 @@ __KERNEL_RCSID(0, "$NetBSD: linux_trap.c,v 1.9 2008/04/28 20:23:28 martin Exp $"
 void
 linux_trapsignal(struct lwp *l, ksiginfo_t *ksi)
 {
-	panic("linux_trapsignal: notyet");
-        (*l->l_proc->p_emul->e_trapsignal)(l, ksi);
+	trapsignal(l, ksi);
 }

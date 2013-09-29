@@ -1,4 +1,4 @@
-/*	$NetBSD$	*/  
+/*	$NetBSD$	*/
 
 /*-
  * Copyright (c) 2013 The NetBSD Foundation, Inc.
@@ -32,8 +32,22 @@
 #ifndef _AVR32_MCONTEXT_H_
 #define _AVR32_MCONTEXT_H_
 
+/*
+ * General register state
+ */
+#define _NGREG	17
+
+#ifndef __ASSEMBLER__
+typedef long	__greg_t;
+
+typedef __greg_t	__gregset_t[_NGREG];
+
 typedef struct {
-	int dummy; /* XXX BOGUS*/
+	__gregset_t	__gregs;
 } mcontext_t;
+#endif /* !__ASSEMBLER__ */
+
+#define _UC_SETSTACK	0x00010000
+#define _UC_CLRSTACK	0x00020000
 
 #endif /* !_AVR32_MCONTEXT_H_ */

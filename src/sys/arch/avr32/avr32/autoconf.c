@@ -47,7 +47,7 @@ cpu_rootconf()
 
 /*
  * Configure all devices on system
- */     
+ */
 void
 cpu_configure(void)
 {

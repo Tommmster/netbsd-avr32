@@ -59,6 +59,10 @@ __KERNEL_RCSID(0, "$NetBSD$");
 #define AT32CLOCK_RATE 100
 #endif
 
+#ifndef FREQ
+#define FREQ (130 * 1000 * 1000) /* XXX */
+#endif 
+
 static void at32clock_init(struct device *);
 static void at32clock_init_tc(void);
 
@@ -149,8 +153,10 @@ at32clock_intr(void *victx, void *vuctx)
 	cf.st = ictx->st;
 	cf.pc = ictx->pc;
 	hardclock(&cf);
+
 	/* Update statistics. */
 	at32clock_evcnt.ev_count++;
+
 }
 
 static void
@@ -171,10 +177,9 @@ at32clock_init(struct device *dev)
 	/* 
 	 * Setup periodic timer (interrupting hz times per second.) 
 	 */
-	next_clk_intr = avr32_count_read();
-	curcpu()->ci_cpu_freq = 200 * 1000 * 1000;
-	curcpu()->ci_cycles_per_hz = curcpu()->ci_cpu_freq / (2 * hz);
-	curcpu()->ci_divisor_delay = curcpu()->ci_cpu_freq / (2 * 1000000);
+	curcpu()->ci_cpu_freq = FREQ;
+	curcpu()->ci_cycles_per_hz = (FREQ + hz / 2) / hz;
+	curcpu()->ci_divisor_delay = ((FREQ + 500000) / 1000000);
 
 	next_clk_intr = avr32_count_read() + curcpu()->ci_cycles_per_hz;
 	avr32_compare_write(next_clk_intr);

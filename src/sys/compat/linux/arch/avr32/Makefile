@@ -11,7 +11,7 @@ AVR32_CC=avr32-gcc
 
 AVR32_CFLAGS= -mrelax -mno-pic -march=ap -nostdinc -nostdlib -ffreestanding -ffixed-r1 -D_KERNEL -D__NetBSD__ $(INCLUDES)
 
-SOURCES=$(shell find . -maxdepth 1 -name \*.c -and -not -name sys_syscall.c)
+SOURCES=$(shell find . -maxdepth 1 -name \*.c -and -not -name sys_syscall.c -and -not -name linux_sigarray.c)
 #SOURCES=linux_exec_elf32.c
 
 OBJECTS=$(patsubst %.c, %.o, $(SOURCES))

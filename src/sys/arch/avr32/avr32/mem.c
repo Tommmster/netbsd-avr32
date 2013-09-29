@@ -91,6 +91,7 @@ __KERNEL_RCSID(0, "$NetBSD: mem.c,v 1.35 2007/10/17 19:55:38 garbled Exp $");
 #include <sys/event.h>
 
 #include <machine/cpu.h>
+#include <machine/cache.h>
 
 #include <uvm/uvm_extern.h>
 
@@ -112,7 +113,6 @@ mmrw(dev, uio, flags)
 	struct uio *uio;
 	int flags;
 {
-#if notyet
 	vaddr_t v;
 	int c;
 	struct iovec *iov;
@@ -139,10 +139,8 @@ mmrw(dev, uio, flags)
 				return (EFAULT);
 			v += AVR32_P1_START;
 			error = uiomove((void *)v, c, uio);
-#if notyet
-			if (mips_cache_virtual_alias)
-				mips_dcache_wbinv_range(v, c);
-#endif
+			if (avr32_cache_virtual_alias)
+				avr32_dcache_wbinv_range(v, c);
 			continue;
 
 		case DEV_KMEM:
@@ -157,10 +155,8 @@ mmrw(dev, uio, flags)
 			    uio->uio_rw == UIO_READ ? B_READ : B_WRITE)))
 				return (EFAULT);
 			error = uiomove((void *)v, c, uio);
-#if notyet
-			if (mips_cache_virtual_alias)
-				mips_dcache_wbinv_range(v, c);
-#endif
+			if (avr32_cache_virtual_alias)
+				avr32_dcache_wbinv_range(v, c);
 			continue;
 
 		case DEV_NULL:
@@ -192,7 +188,4 @@ mmrw(dev, uio, flags)
 		uio->uio_resid -= c;
 	}
 	return (error);
-#else
-	panic("mmrw: notyet");
-#endif
 }

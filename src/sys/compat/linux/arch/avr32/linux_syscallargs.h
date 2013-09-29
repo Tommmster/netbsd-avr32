@@ -605,11 +605,6 @@ struct linux_sys_getresgid_args {
 };
 check_syscall_args(linux_sys_getresgid)
 
-//struct linux_sys_rt_sigreturn_args {
-//	syscallarg(struct linux_pt_regs) regs;
-//};
-//check_syscall_args(linux_sys_rt_sigreturn)
-//
 struct linux_sys_rt_sigaction_args {
 	syscallarg(int) signum;
 	syscallarg(const struct linux_sigaction *) nsa;
@@ -1168,7 +1163,7 @@ int	linux_sys_setresgid(struct lwp *, const struct linux_sys_setresgid_args *, r
 
 int	linux_sys_getresgid(struct lwp *, const struct linux_sys_getresgid_args *, register_t *);
 
-//int	linux_sys_rt_sigreturn(struct lwp *, const struct linux_sys_rt_sigreturn_args *, register_t *);
+int	linux_sys_rt_sigreturn(struct lwp *, const void *, register_t *);
 
 int	linux_sys_rt_sigaction(struct lwp *, const struct linux_sys_rt_sigaction_args *, register_t *);
 

@@ -9,24 +9,8 @@
  * From Linux's include/asm-avr32/sigcontext.h
  */
 struct linux_sigcontext {
-   unsigned long  lsc_oldmask;
-   unsigned long  lsc_sr; 
-   unsigned long  lsc_pc; 
-   unsigned long  lsc_lr; 
-   unsigned long  lsc_sp; 
-   unsigned long  lsc_r12;
-   unsigned long  lsc_r11;
-   unsigned long  lsc_r10;
-   unsigned long  lsc_r9; 
-   unsigned long  lsc_r8; 
-   unsigned long  lsc_r7; 
-   unsigned long  lsc_r6; 
-   unsigned long  lsc_r5; 
-   unsigned long  lsc_r4; 
-   unsigned long  lsc_r3; 
-   unsigned long  lsc_r2; 
-   unsigned long  lsc_r1; 
-   unsigned long  lsc_r0; 
+	unsigned long  lsc_oldmask;
+	unsigned long  lsc_regs[17];
 }; 
 
 /*
@@ -50,19 +34,10 @@ struct linux_ucontext {
 /*
  * From Linux's arch/avr32/kernel/signal.c
  */
-struct linux_sigframe {
-	struct linux_sigcontext lsf_sc;
-	struct linux_ucontext lsf_uc;
-	unsigned long lsc_retcode;
-};
-/*
- * From Linux's arch/avr32/kernel/signal.c
- */
-struct linux_rt_sigframe
-{
-	struct linux_siginfo lrs_info;
+struct linux_rt_sigframe {
+	struct linux_siginfo lrs_si;
 	struct linux_ucontext lrs_uc;
-	unsigned long lrs_retcode;
+	unsigned long lrs_code;
 };
 
 /*
@@ -120,7 +95,7 @@ struct linux_rt_sigframe
  * This range used by VMWare (XXX)
  *
  * From Linux's include/linux/vt.h
- * XXX not needed for mips
+ * XXX not needed for avr32
  */
 #define LINUX_VMWARE_NONE 200
 #define LINUX_VMWARE_LAST 237

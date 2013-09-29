@@ -34,6 +34,32 @@
 #include <machine/locore.h>
 #include <machine/param.h>
 
+#include <sys/user.h>
+
+static const char * 
+lname(struct lwp * l)
+{
+
+	if (l == NULL) 
+		return "NULL";
+
+	
+	if (l->l_name == NULL) 
+		return "l_name NULL";
+
+	return l->l_name;
+}
+
+struct lwp *
+_cpu_switchto(struct lwp *l1, struct lwp *l2)
+{
+#if 1
+	printf("[XXXAVR32] cpu_switchto %s:%p -> %s:%p\n", 
+		lname(l1), l1, lname(l2), l2);
+#endif
+	return (void *)_cpu_switchto(l1, l2);
+}
+
 /* XXXAVR32 Machine dependent. IMPLEMENT AS ASSEMBLY CODE ! */
 void
 dump_rx(unsigned int seq, unsigned int reg)

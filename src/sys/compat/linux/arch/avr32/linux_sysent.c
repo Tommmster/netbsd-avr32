@@ -48,8 +48,8 @@ struct sysent linux_sysent[] = {
 	    (sy_call_t *)linux_sys_open },	/* 5 = open */
 	{ ns(struct sys_close_args), 0,
 	    (sy_call_t *)sys_close },		/* 6 = close */
-	{ ns(struct linux_sys_waitpid_args), 0,
-	    (sy_call_t *)linux_sys_waitpid },	/* 7 = waitpid */
+	{ ns(struct sys_umask_args), 0,
+	    (sy_call_t *)sys_umask },		/* 7 = umask */
 	{ ns(struct linux_sys_creat_args), 0,
 	    (sy_call_t *)linux_sys_creat },	/* 8 = creat */
 	{ ns(struct sys_link_args), 0,
@@ -66,14 +66,14 @@ struct sysent linux_sysent[] = {
 	    (sy_call_t *)linux_sys_mknod },	/* 14 = mknod */
 	{ ns(struct sys_chmod_args), 0,
 	    (sy_call_t *)sys_chmod },		/* 15 = chmod */
+	{ ns(struct sys___posix_chown_args), 0,
+	    (sy_call_t *)sys___posix_chown },	/* 16 = __posix_chown */
 	{ ns(struct sys___posix_lchown_args), 0,
-	    (sy_call_t *)sys___posix_lchown },	/* 16 = __posix_lchown */
-	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 17 = unimplemented */
-	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 18 = obsolete ostat */
+	    (sy_call_t *)sys___posix_lchown },	/* 17 = __posix_lchown */
 	{ ns(struct compat_43_sys_lseek_args), 0,
-	    (sy_call_t *)compat_43_sys_lseek },	/* 19 = lseek */
+	    (sy_call_t *)compat_43_sys_lseek },	/* 18 = lseek */
+	{ ns(struct linux_sys_llseek_args), 0,
+	    (sy_call_t *)linux_sys_llseek },	/* 19 = llseek */
 	{ 0, 0, 0,
 	    (sy_call_t *)sys_getpid },		/* 20 = getpid */
 	{ 0, 0, 0,
@@ -91,23 +91,23 @@ struct sysent linux_sysent[] = {
 	{ ns(struct linux_sys_alarm_args), 0,
 	    (sy_call_t *)linux_sys_alarm },	/* 27 = alarm */
 	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 28 = obsolete ofstat */
-	{ 0, 0, 0,
-	    (sy_call_t *)linux_sys_pause },	/* 29 = pause */
+	    (sy_call_t *)linux_sys_pause },	/* 28 = pause */
 	{ ns(struct linux_sys_utime_args), 0,
-	    (sy_call_t *)linux_sys_utime },	/* 30 = utime */
-	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 31 = unimplemented */
-	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 32 = unimplemented */
+	    (sy_call_t *)linux_sys_utime },	/* 29 = utime */
+	{ ns(struct linux_sys_stat_args), 0,
+	    (sy_call_t *)linux_sys_stat },	/* 30 = stat */
+	{ ns(struct linux_sys_fstat_args), 0,
+	    (sy_call_t *)linux_sys_fstat },	/* 31 = fstat */
+	{ ns(struct linux_sys_lstat_args), 0,
+	    (sy_call_t *)linux_sys_lstat },	/* 32 = lstat */
 	{ ns(struct sys_access_args), 0,
 	    (sy_call_t *)sys_access },		/* 33 = access */
-	{ ns(struct linux_sys_nice_args), 0,
-	    (sy_call_t *)linux_sys_nice },	/* 34 = nice */
+	{ ns(struct sys_chroot_args), 0,
+	    (sy_call_t *)sys_chroot },		/* 34 = chroot */
 	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 35 = unimplemented */
-	{ 0, 0, 0,
-	    (sy_call_t *)sys_sync },		/* 36 = sync */
+	    (sy_call_t *)sys_sync },		/* 35 = sync */
+	{ ns(struct sys_fsync_args), 0,
+	    (sy_call_t *)sys_fsync },		/* 36 = fsync */
 	{ ns(struct linux_sys_kill_args), 0,
 	    (sy_call_t *)linux_sys_kill },	/* 37 = kill */
 	{ ns(struct sys___posix_rename_args), 0,
@@ -122,42 +122,42 @@ struct sysent linux_sysent[] = {
 	    (sy_call_t *)linux_sys_pipe },	/* 42 = pipe */
 	{ ns(struct linux_sys_times_args), 0,
 	    (sy_call_t *)linux_sys_times },	/* 43 = times */
-	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 44 = unimplemented */
+	{ ns(struct linux_sys_clone_args), 0,
+	    (sy_call_t *)linux_sys_clone },	/* 44 = clone */
 	{ ns(struct linux_sys_brk_args), 0,
 	    (sy_call_t *)linux_sys_brk },	/* 45 = brk */
 	{ ns(struct sys_setgid_args), 0,
 	    (sy_call_t *)sys_setgid },		/* 46 = setgid */
 	{ 0, 0, 0,
 	    (sy_call_t *)sys_getgid },		/* 47 = getgid */
-	{ ns(struct linux_sys_signal_args), 0,
-	    (sy_call_t *)linux_sys_signal },	/* 48 = signal */
+	{ ns(struct sys___getcwd_args), 0,
+	    (sy_call_t *)sys___getcwd },	/* 48 = __getcwd */
 	{ 0, 0, 0,
 	    (sy_call_t *)sys_geteuid },		/* 49 = geteuid */
 	{ 0, 0, 0,
 	    (sy_call_t *)sys_getegid },		/* 50 = getegid */
 	{ ns(struct sys_acct_args), 0,
 	    (sy_call_t *)sys_acct },		/* 51 = acct */
-	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 52 = unimplemented umount */
-	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 53 = unimplemented */
+	{ ns(struct linux_sys_setfsuid_args), 0,
+	    (sy_call_t *)linux_sys_setfsuid },	/* 52 = setfsuid */
+	{ ns(struct linux_sys_setfsgid_args), 0,
+	    (sy_call_t *)linux_sys_setfsgid },	/* 53 = setfsgid */
 	{ ns(struct linux_sys_ioctl_args), 0,
 	    (sy_call_t *)linux_sys_ioctl },	/* 54 = ioctl */
 	{ ns(struct linux_sys_fcntl_args), 0,
 	    (sy_call_t *)linux_sys_fcntl },	/* 55 = fcntl */
-	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 56 = obsolete mpx */
 	{ ns(struct sys_setpgid_args), 0,
-	    (sy_call_t *)sys_setpgid },		/* 57 = setpgid */
-	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 58 = unimplemented */
-	{ ns(struct linux_sys_olduname_args), 0,
-	    (sy_call_t *)linux_sys_olduname },	/* 59 = olduname */
-	{ ns(struct sys_umask_args), 0,
-	    (sy_call_t *)sys_umask },		/* 60 = umask */
-	{ ns(struct sys_chroot_args), 0,
-	    (sy_call_t *)sys_chroot },		/* 61 = chroot */
+	    (sy_call_t *)sys_setpgid },		/* 56 = setpgid */
+	{ ns(struct linux_sys_mremap_args), 0,
+	    (sy_call_t *)linux_sys_mremap },	/* 57 = mremap */
+	{ ns(struct linux_sys_setresuid_args), 0,
+	    (sy_call_t *)linux_sys_setresuid },	/* 58 = setresuid */
+	{ ns(struct linux_sys_getresuid_args), 0,
+	    (sy_call_t *)linux_sys_getresuid },	/* 59 = getresuid */
+	{ ns(struct sys_setreuid_args), 0,
+	    (sy_call_t *)sys_setreuid },	/* 60 = setreuid */
+	{ ns(struct sys_setregid_args), 0,
+	    (sy_call_t *)sys_setregid },	/* 61 = setregid */
 	{ 0, 0, 0,
 	    linux_sys_nosys },			/* 62 = unimplemented ustat */
 	{ ns(struct sys_dup2_args), 0,
@@ -168,20 +168,20 @@ struct sysent linux_sysent[] = {
 	    (sy_call_t *)sys_getpgrp },		/* 65 = getpgrp */
 	{ 0, 0, 0,
 	    (sy_call_t *)sys_setsid },		/* 66 = setsid */
-	{ ns(struct linux_sys_sigaction_args), 0,
-	    (sy_call_t *)linux_sys_sigaction },	/* 67 = sigaction */
+	{ ns(struct linux_sys_rt_sigaction_args), 0,
+	    (sy_call_t *)linux_sys_rt_sigaction },/* 67 = rt_sigaction */
 	{ 0, 0, 0,
-	    (sy_call_t *)linux_sys_siggetmask },/* 68 = siggetmask */
-	{ ns(struct linux_sys_sigsetmask_args), 0,
-	    (sy_call_t *)linux_sys_sigsetmask },/* 69 = sigsetmask */
-	{ ns(struct sys_setreuid_args), 0,
-	    (sy_call_t *)sys_setreuid },	/* 70 = setreuid */
-	{ ns(struct sys_setregid_args), 0,
-	    (sy_call_t *)sys_setregid },	/* 71 = setregid */
-	{ ns(struct linux_sys_sigsuspend_args), 0,
-	    (sy_call_t *)linux_sys_sigsuspend },/* 72 = sigsuspend */
-	{ ns(struct linux_sys_sigpending_args), 0,
-	    (sy_call_t *)linux_sys_sigpending },/* 73 = sigpending */
+	    (sy_call_t *)linux_sys_rt_sigreturn },/* 68 = rt_sigreturn */
+	{ ns(struct linux_sys_rt_sigprocmask_args), 0,
+	    (sy_call_t *)linux_sys_rt_sigprocmask },/* 69 = rt_sigprocmask */
+	{ ns(struct linux_sys_rt_sigpending_args), 0,
+	    (sy_call_t *)linux_sys_rt_sigpending },/* 70 = rt_sigpending */
+	{ 0, 0, 0,
+	    linux_sys_nosys },			/* 71 = unimplemented rt_sigtimedwait */
+	{ ns(struct linux_sys_rt_queueinfo_args), 0,
+	    (sy_call_t *)linux_sys_rt_queueinfo },/* 72 = rt_queueinfo */
+	{ ns(struct linux_sys_rt_sigsuspend_args), 0,
+	    (sy_call_t *)linux_sys_rt_sigsuspend },/* 73 = rt_sigsuspend */
 	{ ns(struct compat_43_sys_sethostname_args), 0,
 	    (sy_call_t *)compat_43_sys_sethostname },/* 74 = sethostname */
 	{ ns(struct linux_sys_setrlimit_args), 0,
@@ -198,24 +198,24 @@ struct sysent linux_sysent[] = {
 	    (sy_call_t *)sys_getgroups },	/* 80 = getgroups */
 	{ ns(struct sys_setgroups_args), 0,
 	    (sy_call_t *)sys_setgroups },	/* 81 = setgroups */
-	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 82 = unimplemented old_select */
+	{ ns(struct linux_sys_select_args), 0,
+	    (sy_call_t *)linux_sys_select },	/* 82 = select */
 	{ ns(struct sys_symlink_args), 0,
 	    (sy_call_t *)sys_symlink },		/* 83 = symlink */
-	{ ns(struct compat_43_sys_lstat_args), 0,
-	    (sy_call_t *)compat_43_sys_lstat },	/* 84 = oolstat */
+	{ ns(struct sys_fchdir_args), 0,
+	    (sy_call_t *)sys_fchdir },		/* 84 = fchdir */
 	{ ns(struct sys_readlink_args), 0,
 	    (sy_call_t *)sys_readlink },	/* 85 = readlink */
-	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 86 = unimplemented uselib */
+	{ ns(struct linux_sys_pread_args), 0,
+	    (sy_call_t *)linux_sys_pread },	/* 86 = pread */
+	{ ns(struct linux_sys_pwrite_args), 0,
+	    (sy_call_t *)linux_sys_pwrite },	/* 87 = pwrite */
 	{ ns(struct linux_sys_swapon_args), 0,
-	    (sy_call_t *)linux_sys_swapon },	/* 87 = swapon */
+	    (sy_call_t *)linux_sys_swapon },	/* 88 = swapon */
 	{ ns(struct linux_sys_reboot_args), 0,
-	    (sy_call_t *)linux_sys_reboot },	/* 88 = reboot */
-	{ ns(struct linux_sys_readdir_args), 0,
-	    (sy_call_t *)linux_sys_readdir },	/* 89 = readdir */
-	{ ns(struct linux_sys_mmap_args), 0,
-	    (sy_call_t *)linux_sys_mmap },	/* 90 = mmap */
+	    (sy_call_t *)linux_sys_reboot },	/* 89 = reboot */
+	{ ns(struct linux_sys_mmap2_args), 0,
+	    (sy_call_t *)linux_sys_mmap2 },	/* 90 = mmap2 */
 	{ ns(struct sys_munmap_args), 0,
 	    (sy_call_t *)sys_munmap },		/* 91 = munmap */
 	{ ns(struct compat_43_sys_truncate_args), 0,
@@ -230,366 +230,364 @@ struct sysent linux_sysent[] = {
 	    (sy_call_t *)linux_sys_getpriority },/* 96 = getpriority */
 	{ ns(struct sys_setpriority_args), 0,
 	    (sy_call_t *)sys_setpriority },	/* 97 = setpriority */
-	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 98 = unimplemented */
+	{ ns(struct linux_sys_wait4_args), 0,
+	    (sy_call_t *)linux_sys_wait4 },	/* 98 = wait4 */
 	{ ns(struct linux_sys_statfs_args), 0,
 	    (sy_call_t *)linux_sys_statfs },	/* 99 = statfs */
 	{ ns(struct linux_sys_fstatfs_args), 0,
 	    (sy_call_t *)linux_sys_fstatfs },	/* 100 = fstatfs */
-	{ ns(struct linux_sys_ioperm_args), 0,
-	    (sy_call_t *)linux_sys_ioperm },	/* 101 = ioperm */
-	{ ns(struct linux_sys_socketcall_args), 0,
-	    (sy_call_t *)linux_sys_socketcall },/* 102 = socketcall */
+	{ 0, 0, 0,
+	    linux_sys_nosys },			/* 101 = unimplemented vhangup */
+	{ ns(struct linux_sys_sigaltstack_args), 0,
+	    (sy_call_t *)linux_sys_sigaltstack },/* 102 = sigaltstack */
 	{ 0, 0, 0,
 	    linux_sys_nosys },			/* 103 = unimplemented syslog */
 	{ ns(struct sys_setitimer_args), 0,
 	    (sy_call_t *)sys_setitimer },	/* 104 = setitimer */
 	{ ns(struct sys_getitimer_args), 0,
 	    (sy_call_t *)sys_getitimer },	/* 105 = getitimer */
-	{ ns(struct linux_sys_stat_args), 0,
-	    (sy_call_t *)linux_sys_stat },	/* 106 = stat */
-	{ ns(struct linux_sys_lstat_args), 0,
-	    (sy_call_t *)linux_sys_lstat },	/* 107 = lstat */
-	{ ns(struct linux_sys_fstat_args), 0,
-	    (sy_call_t *)linux_sys_fstat },	/* 108 = fstat */
-	{ ns(struct linux_sys_uname_args), 0,
-	    (sy_call_t *)linux_sys_uname },	/* 109 = uname */
-	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 110 = unimplemented iopl */
-	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 111 = unimplemented vhangup */
-	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 112 = unimplemented idle */
-	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 113 = unimplemented vm86old */
-	{ ns(struct linux_sys_wait4_args), 0,
-	    (sy_call_t *)linux_sys_wait4 },	/* 114 = wait4 */
 	{ ns(struct linux_sys_swapoff_args), 0,
-	    (sy_call_t *)linux_sys_swapoff },	/* 115 = swapoff */
+	    (sy_call_t *)linux_sys_swapoff },	/* 106 = swapoff */
 	{ ns(struct linux_sys_sysinfo_args), 0,
-	    (sy_call_t *)linux_sys_sysinfo },	/* 116 = sysinfo */
+	    (sy_call_t *)linux_sys_sysinfo },	/* 107 = sysinfo */
 	{ ns(struct linux_sys_ipc_args), 0,
-	    (sy_call_t *)linux_sys_ipc },	/* 117 = ipc */
-	{ ns(struct sys_fsync_args), 0,
-	    (sy_call_t *)sys_fsync },		/* 118 = fsync */
-	{ ns(struct linux_sys_sigreturn_args), 0,
-	    (sy_call_t *)linux_sys_sigreturn },	/* 119 = sigreturn */
-	{ ns(struct linux_sys_clone_args), 0,
-	    (sy_call_t *)linux_sys_clone },	/* 120 = clone */
+	    (sy_call_t *)linux_sys_ipc },	/* 108 = ipc */
+	{ 0, 0, 0,
+	    linux_sys_nosys },			/* 109 = unimplemented sendfile */
 	{ ns(struct linux_sys_setdomainname_args), 0,
-	    (sy_call_t *)linux_sys_setdomainname },/* 121 = setdomainname */
+	    (sy_call_t *)linux_sys_setdomainname },/* 110 = setdomainname */
 	{ ns(struct linux_sys_new_uname_args), 0,
-	    (sy_call_t *)linux_sys_new_uname },	/* 122 = new_uname */
+	    (sy_call_t *)linux_sys_new_uname },	/* 111 = new_uname */
 	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 123 = unimplemented modify_ldt */
-	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 124 = unimplemented adjtimex */
+	    linux_sys_nosys },			/* 112 = unimplemented adjtimex */
 	{ ns(struct linux_sys_mprotect_args), 0,
-	    (sy_call_t *)linux_sys_mprotect },	/* 125 = mprotect */
-	{ ns(struct linux_sys_sigprocmask_args), 0,
-	    (sy_call_t *)linux_sys_sigprocmask },/* 126 = sigprocmask */
+	    (sy_call_t *)linux_sys_mprotect },	/* 113 = mprotect */
 	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 127 = unimplemented create_module */
+	    sys___vfork14 },			/* 114 = vfork */
 	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 128 = unimplemented init_module */
+	    linux_sys_nosys },			/* 115 = unimplemented init_module */
 	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 129 = unimplemented delete_module */
+	    linux_sys_nosys },			/* 116 = unimplemented delete_module */
 	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 130 = unimplemented get_kernel_syms */
-	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 131 = unimplemented quotactl */
+	    linux_sys_nosys },			/* 117 = unimplemented quotactl */
 	{ ns(struct sys_getpgid_args), 0,
-	    (sy_call_t *)sys_getpgid },		/* 132 = getpgid */
-	{ ns(struct sys_fchdir_args), 0,
-	    (sy_call_t *)sys_fchdir },		/* 133 = fchdir */
+	    (sy_call_t *)sys_getpgid },		/* 118 = getpgid */
 	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 134 = unimplemented bdflush */
+	    linux_sys_nosys },			/* 119 = unimplemented bdflush */
 	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 135 = unimplemented sysfs */
+	    linux_sys_nosys },			/* 120 = unimplemented sysfs */
 	{ ns(struct linux_sys_personality_args), 0,
-	    (sy_call_t *)linux_sys_personality },/* 136 = personality */
+	    (sy_call_t *)linux_sys_personality },/* 121 = personality */
 	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 137 = unimplemented afs_syscall */
-	{ ns(struct linux_sys_setfsuid_args), 0,
-	    (sy_call_t *)linux_sys_setfsuid },	/* 138 = setfsuid */
-	{ ns(struct linux_sys_setfsgid_args), 0,
-	    (sy_call_t *)linux_sys_setfsgid },	/* 139 = setfsgid */
-	{ ns(struct linux_sys_llseek_args), 0,
-	    (sy_call_t *)linux_sys_llseek },	/* 140 = llseek */
+	    linux_sys_nosys },			/* 122 = unimplemented afs_syscall */
 	{ ns(struct linux_sys_getdents_args), 0,
-	    (sy_call_t *)linux_sys_getdents },	/* 141 = getdents */
-	{ ns(struct linux_sys_select_args), 0,
-	    (sy_call_t *)linux_sys_select },	/* 142 = select */
+	    (sy_call_t *)linux_sys_getdents },	/* 123 = getdents */
 	{ ns(struct sys_flock_args), 0,
-	    (sy_call_t *)sys_flock },		/* 143 = flock */
+	    (sy_call_t *)sys_flock },		/* 124 = flock */
 	{ ns(struct sys___msync13_args), 0,
-	    (sy_call_t *)sys___msync13 },	/* 144 = __msync13 */
+	    (sy_call_t *)sys___msync13 },	/* 125 = __msync13 */
 	{ ns(struct sys_readv_args), 0,
-	    (sy_call_t *)sys_readv },		/* 145 = readv */
+	    (sy_call_t *)sys_readv },		/* 126 = readv */
 	{ ns(struct sys_writev_args), 0,
-	    (sy_call_t *)sys_writev },		/* 146 = writev */
-	{ ns(struct linux_sys_cacheflush_args), 0,
-	    (sy_call_t *)linux_sys_cacheflush },/* 147 = cacheflush */
-	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 148 = unimplemented cachectl */
-	{ ns(struct linux_sys_sysmips_args), 0,
-	    (sy_call_t *)linux_sys_sysmips },	/* 149 = sysmips */
-	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 150 = unimplemented */
+	    (sy_call_t *)sys_writev },		/* 127 = writev */
 	{ ns(struct sys_getsid_args), 0,
-	    (sy_call_t *)sys_getsid },		/* 151 = getsid */
+	    (sy_call_t *)sys_getsid },		/* 128 = getsid */
 	{ ns(struct linux_sys_fdatasync_args), 0,
-	    (sy_call_t *)linux_sys_fdatasync },	/* 152 = fdatasync */
+	    (sy_call_t *)linux_sys_fdatasync },	/* 129 = fdatasync */
 	{ ns(struct linux_sys___sysctl_args), 0,
-	    (sy_call_t *)linux_sys___sysctl },	/* 153 = __sysctl */
+	    (sy_call_t *)linux_sys___sysctl },	/* 130 = __sysctl */
 	{ ns(struct sys_mlock_args), 0,
-	    (sy_call_t *)sys_mlock },		/* 154 = mlock */
+	    (sy_call_t *)sys_mlock },		/* 131 = mlock */
 	{ ns(struct sys_munlock_args), 0,
-	    (sy_call_t *)sys_munlock },		/* 155 = munlock */
+	    (sy_call_t *)sys_munlock },		/* 132 = munlock */
 	{ ns(struct sys_mlockall_args), 0,
-	    (sy_call_t *)sys_mlockall },	/* 156 = mlockall */
+	    (sy_call_t *)sys_mlockall },	/* 133 = mlockall */
 	{ 0, 0, 0,
-	    (sy_call_t *)sys_munlockall },	/* 157 = munlockall */
+	    (sy_call_t *)sys_munlockall },	/* 134 = munlockall */
 	{ ns(struct linux_sys_sched_setparam_args), 0,
-	    (sy_call_t *)linux_sys_sched_setparam },/* 158 = sched_setparam */
+	    (sy_call_t *)linux_sys_sched_setparam },/* 135 = sched_setparam */
 	{ ns(struct linux_sys_sched_getparam_args), 0,
-	    (sy_call_t *)linux_sys_sched_getparam },/* 159 = sched_getparam */
+	    (sy_call_t *)linux_sys_sched_getparam },/* 136 = sched_getparam */
 	{ ns(struct linux_sys_sched_setscheduler_args), 0,
-	    (sy_call_t *)linux_sys_sched_setscheduler },/* 160 = sched_setscheduler */
+	    (sy_call_t *)linux_sys_sched_setscheduler },/* 137 = sched_setscheduler */
 	{ ns(struct linux_sys_sched_getscheduler_args), 0,
-	    (sy_call_t *)linux_sys_sched_getscheduler },/* 161 = sched_getscheduler */
+	    (sy_call_t *)linux_sys_sched_getscheduler },/* 138 = sched_getscheduler */
 	{ 0, 0, 0,
-	    (sy_call_t *)linux_sys_sched_yield },/* 162 = sched_yield */
+	    (sy_call_t *)linux_sys_sched_yield },/* 139 = sched_yield */
 	{ ns(struct linux_sys_sched_get_priority_max_args), 0,
-	    (sy_call_t *)linux_sys_sched_get_priority_max },/* 163 = sched_get_priority_max */
+	    (sy_call_t *)linux_sys_sched_get_priority_max },/* 140 = sched_get_priority_max */
 	{ ns(struct linux_sys_sched_get_priority_min_args), 0,
-	    (sy_call_t *)linux_sys_sched_get_priority_min },/* 164 = sched_get_priority_min */
+	    (sy_call_t *)linux_sys_sched_get_priority_min },/* 141 = sched_get_priority_min */
 	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 165 = unimplemented sched_rr_get_interval */
+	    linux_sys_nosys },			/* 142 = unimplemented sched_rr_get_interval */
 	{ ns(struct linux_sys_nanosleep_args), 0,
-	    (sy_call_t *)linux_sys_nanosleep },	/* 166 = nanosleep */
-	{ ns(struct linux_sys_mremap_args), 0,
-	    (sy_call_t *)linux_sys_mremap },	/* 167 = mremap */
-	{ ns(struct linux_sys_accept_args), 0,
-	    (sy_call_t *)linux_sys_accept },	/* 168 = accept */
-	{ ns(struct linux_sys_bind_args), 0,
-	    (sy_call_t *)linux_sys_bind },	/* 169 = bind */
-	{ ns(struct linux_sys_connect_args), 0,
-	    (sy_call_t *)linux_sys_connect },	/* 170 = connect */
-	{ ns(struct linux_sys_getpeername_args), 0,
-	    (sy_call_t *)linux_sys_getpeername },/* 171 = getpeername */
-	{ ns(struct linux_sys_getsockname_args), 0,
-	    (sy_call_t *)linux_sys_getsockname },/* 172 = getsockname */
-	{ ns(struct linux_sys_getsockopt_args), 0,
-	    (sy_call_t *)linux_sys_getsockopt },/* 173 = getsockopt */
-	{ ns(struct sys_listen_args), 0,
-	    (sy_call_t *)sys_listen },		/* 174 = listen */
-	{ ns(struct linux_sys_recv_args), 0,
-	    (sy_call_t *)linux_sys_recv },	/* 175 = recv */
-	{ ns(struct linux_sys_recvfrom_args), 0,
-	    (sy_call_t *)linux_sys_recvfrom },	/* 176 = recvfrom */
-	{ ns(struct linux_sys_recvmsg_args), 0,
-	    (sy_call_t *)linux_sys_recvmsg },	/* 177 = recvmsg */
-	{ ns(struct linux_sys_send_args), 0,
-	    (sy_call_t *)linux_sys_send },	/* 178 = send */
-	{ ns(struct linux_sys_sendmsg_args), 0,
-	    (sy_call_t *)linux_sys_sendmsg },	/* 179 = sendmsg */
-	{ ns(struct linux_sys_sendto_args), 0,
-	    (sy_call_t *)linux_sys_sendto },	/* 180 = sendto */
-	{ ns(struct linux_sys_setsockopt_args), 0,
-	    (sy_call_t *)linux_sys_setsockopt },/* 181 = setsockopt */
-	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 182 = unimplemented shutdown */
-	{ ns(struct linux_sys_socket_args), 0,
-	    (sy_call_t *)linux_sys_socket },	/* 183 = socket */
-	{ ns(struct linux_sys_socketpair_args), 0,
-	    (sy_call_t *)linux_sys_socketpair },/* 184 = socketpair */
-	{ ns(struct linux_sys_setresuid_args), 0,
-	    (sy_call_t *)linux_sys_setresuid },	/* 185 = setresuid */
-	{ ns(struct linux_sys_getresuid_args), 0,
-	    (sy_call_t *)linux_sys_getresuid },	/* 186 = getresuid */
-	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 187 = unimplemented query_module */
+	    (sy_call_t *)linux_sys_nanosleep },	/* 143 = nanosleep */
 	{ ns(struct sys_poll_args), 0,
-	    (sy_call_t *)sys_poll },		/* 188 = poll */
+	    (sy_call_t *)sys_poll },		/* 144 = poll */
 	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 189 = unimplemented nfsservctl */
+	    linux_sys_nosys },			/* 145 = unimplemented nfsservctl */
 	{ ns(struct linux_sys_setresgid_args), 0,
-	    (sy_call_t *)linux_sys_setresgid },	/* 190 = setresgid */
+	    (sy_call_t *)linux_sys_setresgid },	/* 146 = setresgid */
 	{ ns(struct linux_sys_getresgid_args), 0,
-	    (sy_call_t *)linux_sys_getresgid },	/* 191 = getresgid */
+	    (sy_call_t *)linux_sys_getresgid },	/* 147 = getresgid */
 	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 192 = unimplemented prctl */
-#if 0
-	{ ns(struct linux_sys_rt_sigreturn_args), 0,
-	    (sy_call_t *)linux_sys_rt_sigreturn },/* 193 = rt_sigreturn */
-#endif 
-	{ ns(struct linux_sys_rt_sigaction_args), 0,
-	    (sy_call_t *)linux_sys_rt_sigaction },/* 194 = rt_sigaction */
-	{ ns(struct linux_sys_rt_sigprocmask_args), 0,
-	    (sy_call_t *)linux_sys_rt_sigprocmask },/* 195 = rt_sigprocmask */
-	{ ns(struct linux_sys_rt_sigpending_args), 0,
-	    (sy_call_t *)linux_sys_rt_sigpending },/* 196 = rt_sigpending */
+	    linux_sys_nosys },			/* 148 = unimplemented prctl */
+	{ ns(struct linux_sys_socket_args), 0,
+	    (sy_call_t *)linux_sys_socket },	/* 149 = socket */
+	{ ns(struct linux_sys_bind_args), 0,
+	    (sy_call_t *)linux_sys_bind },	/* 150 = bind */
+	{ ns(struct linux_sys_connect_args), 0,
+	    (sy_call_t *)linux_sys_connect },	/* 151 = connect */
+	{ ns(struct sys_listen_args), 0,
+	    (sy_call_t *)sys_listen },		/* 152 = listen */
+	{ ns(struct linux_sys_accept_args), 0,
+	    (sy_call_t *)linux_sys_accept },	/* 153 = accept */
+	{ ns(struct linux_sys_getsockname_args), 0,
+	    (sy_call_t *)linux_sys_getsockname },/* 154 = getsockname */
+	{ ns(struct linux_sys_getpeername_args), 0,
+	    (sy_call_t *)linux_sys_getpeername },/* 155 = getpeername */
+	{ ns(struct linux_sys_socketpair_args), 0,
+	    (sy_call_t *)linux_sys_socketpair },/* 156 = socketpair */
+	{ ns(struct linux_sys_send_args), 0,
+	    (sy_call_t *)linux_sys_send },	/* 157 = send */
+	{ ns(struct linux_sys_recv_args), 0,
+	    (sy_call_t *)linux_sys_recv },	/* 158 = recv */
+	{ ns(struct linux_sys_sendto_args), 0,
+	    (sy_call_t *)linux_sys_sendto },	/* 159 = sendto */
+	{ ns(struct linux_sys_recvfrom_args), 0,
+	    (sy_call_t *)linux_sys_recvfrom },	/* 160 = recvfrom */
 	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 197 = unimplemented rt_sigtimedwait */
-	{ ns(struct linux_sys_rt_queueinfo_args), 0,
-	    (sy_call_t *)linux_sys_rt_queueinfo },/* 198 = rt_queueinfo */
-	{ ns(struct linux_sys_rt_sigsuspend_args), 0,
-	    (sy_call_t *)linux_sys_rt_sigsuspend },/* 199 = rt_sigsuspend */
-	{ ns(struct linux_sys_pread_args), 0,
-	    (sy_call_t *)linux_sys_pread },	/* 200 = pread */
-	{ ns(struct linux_sys_pwrite_args), 0,
-	    (sy_call_t *)linux_sys_pwrite },	/* 201 = pwrite */
-	{ ns(struct sys___posix_chown_args), 0,
-	    (sy_call_t *)sys___posix_chown },	/* 202 = __posix_chown */
-	{ ns(struct sys___getcwd_args), 0,
-	    (sy_call_t *)sys___getcwd },	/* 203 = __getcwd */
-	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 204 = unimplemented capget */
-	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 205 = unimplemented capset */
-	{ ns(struct linux_sys_sigaltstack_args), 0,
-	    (sy_call_t *)linux_sys_sigaltstack },/* 206 = sigaltstack */
-	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 207 = unimplemented sendfile */
-	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 208 = unimplemented */
-	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 209 = unimplemented */
-	{ ns(struct linux_sys_mmap2_args), 0,
-	    (sy_call_t *)linux_sys_mmap2 },	/* 210 = mmap2 */
+	    linux_sys_nosys },			/* 161 = unimplemented shutdown */
+	{ ns(struct linux_sys_setsockopt_args), 0,
+	    (sy_call_t *)linux_sys_setsockopt },/* 162 = setsockopt */
+	{ ns(struct linux_sys_getsockopt_args), 0,
+	    (sy_call_t *)linux_sys_getsockopt },/* 163 = getsockopt */
+	{ ns(struct linux_sys_sendmsg_args), 0,
+	    (sy_call_t *)linux_sys_sendmsg },	/* 164 = sendmsg */
+	{ ns(struct linux_sys_recvmsg_args), 0,
+	    (sy_call_t *)linux_sys_recvmsg },	/* 165 = recvmsg */
 	{ ns(struct linux_sys_truncate64_args), 0,
-	    (sy_call_t *)linux_sys_truncate64 },/* 211 = truncate64 */
+	    (sy_call_t *)linux_sys_truncate64 },/* 166 = truncate64 */
 	{ ns(struct linux_sys_ftruncate64_args), 0,
-	    (sy_call_t *)linux_sys_ftruncate64 },/* 212 = ftruncate64 */
+	    (sy_call_t *)linux_sys_ftruncate64 },/* 167 = ftruncate64 */
 	{ ns(struct linux_sys_stat64_args), 0,
-	    (sy_call_t *)linux_sys_stat64 },	/* 213 = stat64 */
+	    (sy_call_t *)linux_sys_stat64 },	/* 168 = stat64 */
 	{ ns(struct linux_sys_lstat64_args), 0,
-	    (sy_call_t *)linux_sys_lstat64 },	/* 214 = lstat64 */
+	    (sy_call_t *)linux_sys_lstat64 },	/* 169 = lstat64 */
 	{ ns(struct linux_sys_fstat64_args), 0,
-	    (sy_call_t *)linux_sys_fstat64 },	/* 215 = fstat64 */
+	    (sy_call_t *)linux_sys_fstat64 },	/* 170 = fstat64 */
 	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 216 = unimplemented pivot_root */
+	    linux_sys_nosys },			/* 171 = unimplemented pivot_root */
 	{ ns(struct sys_mincore_args), 0,
-	    (sy_call_t *)sys_mincore },		/* 217 = mincore */
+	    (sy_call_t *)sys_mincore },		/* 172 = mincore */
 	{ ns(struct sys_madvise_args), 0,
-	    (sy_call_t *)sys_madvise },		/* 218 = madvise */
+	    (sy_call_t *)sys_madvise },		/* 173 = madvise */
 	{ ns(struct linux_sys_getdents64_args), 0,
-	    (sy_call_t *)linux_sys_getdents64 },/* 219 = getdents64 */
+	    (sy_call_t *)linux_sys_getdents64 },/* 174 = getdents64 */
 	{ ns(struct linux_sys_fcntl64_args), 0,
-	    (sy_call_t *)linux_sys_fcntl64 },	/* 220 = fcntl64 */
+	    (sy_call_t *)linux_sys_fcntl64 },	/* 175 = fcntl64 */
 	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 221 = unimplemented / * reserved * / */
+	    linux_sys_nosys },			/* 176 = unimplemented gettid */
 	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 222 = unimplemented gettid */
-	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 223 = unimplemented readahead */
+	    linux_sys_nosys },			/* 177 = unimplemented readahead */
 	{ ns(struct linux_sys_setxattr_args), 0,
-	    (sy_call_t *)linux_sys_setxattr },	/* 224 = setxattr */
+	    (sy_call_t *)linux_sys_setxattr },	/* 178 = setxattr */
 	{ ns(struct linux_sys_lsetxattr_args), 0,
-	    (sy_call_t *)linux_sys_lsetxattr },	/* 225 = lsetxattr */
+	    (sy_call_t *)linux_sys_lsetxattr },	/* 179 = lsetxattr */
 	{ ns(struct linux_sys_fsetxattr_args), 0,
-	    (sy_call_t *)linux_sys_fsetxattr },	/* 226 = fsetxattr */
+	    (sy_call_t *)linux_sys_fsetxattr },	/* 180 = fsetxattr */
 	{ ns(struct linux_sys_getxattr_args), 0,
-	    (sy_call_t *)linux_sys_getxattr },	/* 227 = getxattr */
+	    (sy_call_t *)linux_sys_getxattr },	/* 181 = getxattr */
 	{ ns(struct linux_sys_lgetxattr_args), 0,
-	    (sy_call_t *)linux_sys_lgetxattr },	/* 228 = lgetxattr */
+	    (sy_call_t *)linux_sys_lgetxattr },	/* 182 = lgetxattr */
 	{ ns(struct linux_sys_fgetxattr_args), 0,
-	    (sy_call_t *)linux_sys_fgetxattr },	/* 229 = fgetxattr */
+	    (sy_call_t *)linux_sys_fgetxattr },	/* 183 = fgetxattr */
 	{ ns(struct linux_sys_listxattr_args), 0,
-	    (sy_call_t *)linux_sys_listxattr },	/* 230 = listxattr */
+	    (sy_call_t *)linux_sys_listxattr },	/* 184 = listxattr */
 	{ ns(struct linux_sys_llistxattr_args), 0,
-	    (sy_call_t *)linux_sys_llistxattr },/* 231 = llistxattr */
+	    (sy_call_t *)linux_sys_llistxattr },/* 185 = llistxattr */
 	{ ns(struct linux_sys_flistxattr_args), 0,
-	    (sy_call_t *)linux_sys_flistxattr },/* 232 = flistxattr */
+	    (sy_call_t *)linux_sys_flistxattr },/* 186 = flistxattr */
 	{ ns(struct linux_sys_removexattr_args), 0,
-	    (sy_call_t *)linux_sys_removexattr },/* 233 = removexattr */
+	    (sy_call_t *)linux_sys_removexattr },/* 187 = removexattr */
 	{ ns(struct linux_sys_lremovexattr_args), 0,
-	    (sy_call_t *)linux_sys_lremovexattr },/* 234 = lremovexattr */
+	    (sy_call_t *)linux_sys_lremovexattr },/* 188 = lremovexattr */
 	{ ns(struct linux_sys_fremovexattr_args), 0,
-	    (sy_call_t *)linux_sys_fremovexattr },/* 235 = fremovexattr */
+	    (sy_call_t *)linux_sys_fremovexattr },/* 189 = fremovexattr */
 	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 236 = unimplemented tkill */
+	    linux_sys_nosys },			/* 190 = unimplemented tkill */
 	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 237 = unimplemented sendfile64 */
+	    linux_sys_nosys },			/* 191 = unimplemented sendfile64 */
 	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 238 = unimplemented futex */
+	    linux_sys_nosys },			/* 192 = unimplemented futex */
 	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 239 = unimplemented sched_setaffinity */
+	    linux_sys_nosys },			/* 193 = unimplemented sched_setaffinity */
 	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 240 = unimplemented sched_getaffinity */
+	    linux_sys_nosys },			/* 194 = unimplemented sched_getaffinity */
 	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 241 = unimplemented io_setup */
+	    linux_sys_nosys },			/* 195 = unimplemented capget */
 	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 242 = unimplemented io_destroy */
+	    linux_sys_nosys },			/* 196 = unimplemented capset */
 	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 243 = unimplemented io_getevents */
+	    linux_sys_nosys },			/* 197 = unimplemented io_setup */
 	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 244 = unimplemented io_submit */
+	    linux_sys_nosys },			/* 198 = unimplemented io_destroy */
 	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 245 = unimplemented io_cancel */
+	    linux_sys_nosys },			/* 199 = unimplemented io_getevents */
+	{ 0, 0, 0,
+	    linux_sys_nosys },			/* 200 = unimplemented io_submit */
+	{ 0, 0, 0,
+	    linux_sys_nosys },			/* 201 = unimplemented io_cancel */
+	{ 0, 0, 0,
+	    linux_sys_nosys },			/* 202 = unimplemented fadvise64 */
 	{ ns(struct linux_sys_exit_group_args), 0,
-	    (sy_call_t *)linux_sys_exit_group },/* 246 = exit_group */
+	    (sy_call_t *)linux_sys_exit_group },/* 203 = exit_group */
 	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 247 = unimplemented lookup_dcookie */
+	    linux_sys_nosys },			/* 204 = unimplemented lookup_dcookie */
 	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 248 = unimplemented epoll_create */
+	    linux_sys_nosys },			/* 205 = unimplemented epoll_create */
 	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 249 = unimplemented epoll_ctl */
+	    linux_sys_nosys },			/* 206 = unimplemented epoll_ctl */
 	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 250 = unimplemented epoll_wait */
+	    linux_sys_nosys },			/* 207 = unimplemented epoll_wait */
 	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 251 = unimplemented remap_file_pages */
+	    linux_sys_nosys },			/* 208 = unimplemented remap_file_pages */
 	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 252 = unimplemented set_tid_address */
+	    linux_sys_nosys },			/* 209 = unimplemented set_tid_address */
 	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 253 = unimplemented restart_syscall */
+	    linux_sys_nosys },			/* 210 = unimplemented timer_create */
 	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 254 = unimplemented fadvise64 */
-	{ ns(struct linux_sys_statfs64_args), 0,
-	    (sy_call_t *)linux_sys_statfs64 },	/* 255 = statfs64 */
-	{ ns(struct linux_sys_fstatfs64_args), 0,
-	    (sy_call_t *)linux_sys_fstatfs64 },	/* 256 = fstatfs64 */
+	    linux_sys_nosys },			/* 211 = unimplemented timer_settime */
 	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 257 = unimplemented timer_create */
+	    linux_sys_nosys },			/* 212 = unimplemented timer_gettime */
 	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 258 = unimplemented timer_settime */
+	    linux_sys_nosys },			/* 213 = unimplemented timer_getoverrun */
 	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 259 = unimplemented timer_gettime */
-	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 260 = unimplemented timer_getoverrun */
-	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 261 = unimplemented timer_delete */
+	    linux_sys_nosys },			/* 214 = unimplemented timer_delete */
 	{ ns(struct linux_sys_clock_settime_args), 0,
-	    (sy_call_t *)linux_sys_clock_settime },/* 262 = clock_settime */
+	    (sy_call_t *)linux_sys_clock_settime },/* 215 = clock_settime */
 	{ ns(struct linux_sys_clock_gettime_args), 0,
-	    (sy_call_t *)linux_sys_clock_gettime },/* 263 = clock_gettime */
+	    (sy_call_t *)linux_sys_clock_gettime },/* 216 = clock_gettime */
 	{ ns(struct linux_sys_clock_getres_args), 0,
-	    (sy_call_t *)linux_sys_clock_getres },/* 264 = clock_getres */
+	    (sy_call_t *)linux_sys_clock_getres },/* 217 = clock_getres */
 	{ ns(struct linux_sys_clock_nanosleep_args), 0,
-	    (sy_call_t *)linux_sys_clock_nanosleep },/* 265 = clock_nanosleep */
+	    (sy_call_t *)linux_sys_clock_nanosleep },/* 218 = clock_nanosleep */
+	{ ns(struct linux_sys_statfs64_args), 0,
+	    (sy_call_t *)linux_sys_statfs64 },	/* 219 = statfs64 */
+	{ ns(struct linux_sys_fstatfs64_args), 0,
+	    (sy_call_t *)linux_sys_fstatfs64 },	/* 220 = fstatfs64 */
 	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 266 = unimplemented tgkill */
+	    linux_sys_nosys },			/* 221 = unimplemented tgkill */
 	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 267 = unimplemented utimes */
+	    linux_sys_nosys },			/* 222 = reserved */
 	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 268 = unimplemented mbind */
+	    linux_sys_nosys },			/* 223 = unimplemented utimes */
 	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 269 = unimplemented get_mempolicy */
+	    linux_sys_nosys },			/* 224 = unimplemented fadvise64_64 */
+	{ ns(struct linux_sys_cacheflush_args), 0,
+	    (sy_call_t *)linux_sys_cacheflush },/* 225 = cacheflush */
 	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 270 = unimplemented set_mempolicy */
+	    linux_sys_nosys },			/* 226 = unimplemented */
 	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 271 = unimplemented mq_open */
+	    linux_sys_nosys },			/* 227 = unimplemented mq_open */
 	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 272 = unimplemented mq_unlink */
+	    linux_sys_nosys },			/* 228 = unimplemented mq_unlink */
 	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 273 = unimplemented mq_timedsend */
+	    linux_sys_nosys },			/* 229 = unimplemented mq_timedsend */
 	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 274 = unimplemented mq_timedreceive */
+	    linux_sys_nosys },			/* 230 = unimplemented mq_timedreceive */
 	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 275 = unimplemented mq_notify */
+	    linux_sys_nosys },			/* 231 = unimplemented mq_notify */
 	{ 0, 0, 0,
-	    linux_sys_nosys },			/* 276 = unimplemented mq_getsetattr */
+	    linux_sys_nosys },			/* 232 = unimplemented mq_getsetattr */
+	{ 0, 0, 0,
+	    linux_sys_nosys },			/* 233 = filler */
+	{ 0, 0, 0,
+	    linux_sys_nosys },			/* 234 = filler */
+	{ 0, 0, 0,
+	    linux_sys_nosys },			/* 235 = filler */
+	{ 0, 0, 0,
+	    linux_sys_nosys },			/* 236 = filler */
+	{ 0, 0, 0,
+	    linux_sys_nosys },			/* 237 = filler */
+	{ 0, 0, 0,
+	    linux_sys_nosys },			/* 238 = filler */
+	{ 0, 0, 0,
+	    linux_sys_nosys },			/* 239 = filler */
+	{ 0, 0, 0,
+	    linux_sys_nosys },			/* 240 = filler */
+	{ 0, 0, 0,
+	    linux_sys_nosys },			/* 241 = filler */
+	{ 0, 0, 0,
+	    linux_sys_nosys },			/* 242 = filler */
+	{ 0, 0, 0,
+	    linux_sys_nosys },			/* 243 = filler */
+	{ 0, 0, 0,
+	    linux_sys_nosys },			/* 244 = filler */
+	{ 0, 0, 0,
+	    linux_sys_nosys },			/* 245 = filler */
+	{ 0, 0, 0,
+	    linux_sys_nosys },			/* 246 = filler */
+	{ 0, 0, 0,
+	    linux_sys_nosys },			/* 247 = filler */
+	{ 0, 0, 0,
+	    linux_sys_nosys },			/* 248 = filler */
+	{ 0, 0, 0,
+	    linux_sys_nosys },			/* 249 = filler */
+	{ 0, 0, 0,
+	    linux_sys_nosys },			/* 250 = filler */
+	{ 0, 0, 0,
+	    linux_sys_nosys },			/* 251 = filler */
+	{ 0, 0, 0,
+	    linux_sys_nosys },			/* 252 = filler */
+	{ 0, 0, 0,
+	    linux_sys_nosys },			/* 253 = filler */
+	{ 0, 0, 0,
+	    linux_sys_nosys },			/* 254 = filler */
+	{ 0, 0, 0,
+	    linux_sys_nosys },			/* 255 = filler */
+	{ 0, 0, 0,
+	    linux_sys_nosys },			/* 256 = filler */
+	{ 0, 0, 0,
+	    linux_sys_nosys },			/* 257 = filler */
+	{ 0, 0, 0,
+	    linux_sys_nosys },			/* 258 = filler */
+	{ 0, 0, 0,
+	    linux_sys_nosys },			/* 259 = filler */
+	{ 0, 0, 0,
+	    linux_sys_nosys },			/* 260 = filler */
+	{ 0, 0, 0,
+	    linux_sys_nosys },			/* 261 = filler */
+	{ 0, 0, 0,
+	    linux_sys_nosys },			/* 262 = filler */
+	{ 0, 0, 0,
+	    linux_sys_nosys },			/* 263 = filler */
+	{ 0, 0, 0,
+	    linux_sys_nosys },			/* 264 = filler */
+	{ 0, 0, 0,
+	    linux_sys_nosys },			/* 265 = filler */
+	{ 0, 0, 0,
+	    linux_sys_nosys },			/* 266 = filler */
+	{ 0, 0, 0,
+	    linux_sys_nosys },			/* 267 = filler */
+	{ 0, 0, 0,
+	    linux_sys_nosys },			/* 268 = filler */
+	{ 0, 0, 0,
+	    linux_sys_nosys },			/* 269 = filler */
+	{ 0, 0, 0,
+	    linux_sys_nosys },			/* 270 = filler */
+	{ 0, 0, 0,
+	    linux_sys_nosys },			/* 271 = filler */
+	{ 0, 0, 0,
+	    linux_sys_nosys },			/* 272 = filler */
+	{ 0, 0, 0,
+	    linux_sys_nosys },			/* 273 = filler */
+	{ 0, 0, 0,
+	    linux_sys_nosys },			/* 274 = filler */
+	{ 0, 0, 0,
+	    linux_sys_nosys },			/* 275 = filler */
+	{ 0, 0, 0,
+	    linux_sys_nosys },			/* 276 = filler */
 	{ 0, 0, 0,
 	    linux_sys_nosys },			/* 277 = filler */
 	{ 0, 0, 0,
@@ -1061,4 +1059,3 @@ struct sysent linux_sysent[] = {
 	{ 0, 0, 0,
 	    linux_sys_nosys },			/* 511 = filler */
 };
-

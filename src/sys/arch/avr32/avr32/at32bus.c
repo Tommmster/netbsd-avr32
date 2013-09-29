@@ -78,9 +78,7 @@ at32bus_attach(struct device *parent, struct device *self, void *aux)
 	static const const char *devnames[] = {		/* ATTACH ORDER */
 		"at32pm",				/* 1. Power Mgr */
 		"at32intc",				/* 2. Interrupts */
-#ifdef notyet
 		"at32usart",				/* 3. USART */
-#endif
 		"at32clock",				/* 4. Clock */
 	};
 	struct at32bus_attach_args aa;

@@ -121,6 +121,8 @@ u_int avr32_dcache_align_mask;
 u_int avr32_cache_alias_mask;    /* for virtually-indexed caches */
 u_int avr32_cache_prefer_mask;
 
+int avr32_cache_virtual_alias;
+
 /*
  * avr32_config_cache:
  *
@@ -184,6 +186,11 @@ avr32_config_cache(void)
 		((avr32_pdcache_size / avr32_pdcache_ways) - 1) & ~PAGE_MASK;
 	avr32_cache_prefer_mask =
 		max(avr32_pdcache_size, avr32_picache_size) - 1;
+
+	/*
+	 * XXX NWGW100 with 4K pages doen't present virtual aliasing.
+	 */
+	avr32_cache_virtual_alias = 1;
 }
 
 void

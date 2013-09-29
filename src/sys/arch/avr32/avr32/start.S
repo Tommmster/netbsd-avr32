@@ -1,4 +1,4 @@
-/* 	$NetBSD$	 */
+/* 	$NetBSD$	*/
 
 /*-
  * Copyright (c) 2013 The NetBSD Foundation, Inc.
@@ -38,7 +38,7 @@
 	.section .init,"ax"
 	.global _start
 _start:
-        /* The bootloader must provide a magic number. Check it. */
+	/* The bootloader must provide a magic number. Check it. */
 	lddpc	r0, uboot_magic_number
 	cp.w	r12, r0
 	brne	uboot_fail

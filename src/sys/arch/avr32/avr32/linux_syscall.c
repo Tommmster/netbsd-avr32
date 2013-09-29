@@ -55,7 +55,6 @@ void linux_syscall_fancy(struct lwp *l, u_int status, u_int cause, u_int opc);
 void
 linux_syscall_intern(struct proc *p)
 {
-
 	if (trace_is_enabled(p))
 		p->p_md.md_syscall = linux_syscall_fancy;
 	else
@@ -98,7 +97,7 @@ linux_syscall_plain(struct lwp *l, u_int status, u_int cause, u_int opc)
 	switch (code) {
 	case SYS_syscall:
 	case SYS___syscall:
-		panic ("linux_syscall_plain: SYS_syscall / SYS__syscall not yet");
+		panic ("linux_syscall_plain: SYS*syscall: not yet");
 #if notyet
 		args = copyargs;
 		if (code == SYS_syscall) {
@@ -115,7 +114,7 @@ linux_syscall_plain(struct lwp *l, u_int status, u_int cause, u_int opc)
 			 * Like syscall, but code is a quad, so as to maintain
 			 * quad alignment for the rest of the arguments.
 			 */
-			code = frame->f_regs[_R_A0 + _QUAD_LOWWORD] 
+			code = frame->f_regs[_R_A0 + _QUAD_LOWWORD]
 			    - SYSCALL_SHIFT;
 			args[0] = frame->f_regs[_R_A2];
 			args[1] = frame->f_regs[_R_A3];
@@ -153,7 +152,7 @@ linux_syscall_plain(struct lwp *l, u_int status, u_int cause, u_int opc)
 			args[2] = frame->f_regs[_R_R10];
 			args[3] = frame->f_regs[_R_R9];
 		} else {
-			panic("linux_syscall_plain: nargs >=5 panic");
+			panic("linux_syscall_plain: nargs >=5: notyet");
 		}
 		break;
 	}
@@ -166,21 +165,21 @@ linux_syscall_plain(struct lwp *l, u_int status, u_int cause, u_int opc)
 	switch (error) {
 	case 0:
 		frame->f_regs[_R_R12] = rval[0];
-		if (rval[1] != 0)
-			panic("linux_syscall_plain: rval[1] != 0");
+		if (rval[0] != 0 && rval[1] != 0)
+			panic("linux_syscall_plain: rval[1] != 0: notyet");
 		break;
 	case ERESTART:
 		panic("linux_syscall_plain: ERESTART: notyet");
 		break;
 	case EJUSTRETURN:
-		panic("linux_syscall_plain: EJUSTRETURN: notyet");
 		break;	/* nothing to do */
 	default:
 	bad:
 		if (p->p_emul->e_errno)
 			error = p->p_emul->e_errno[error];
-		frame->f_regs[_R_R12] = error; 
-		break;  
+		frame->f_regs[_R_R12] = error;
+		break;
 	}
+
 	userret(l);
 }

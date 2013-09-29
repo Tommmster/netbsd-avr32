@@ -1269,6 +1269,7 @@ lwp_userret(struct lwp *l)
 			mutex_enter(p->p_lock);
 			while ((sig = issignal(l)) != 0)
 				postsig(sig);
+
 			mutex_exit(p->p_lock);
 		}
 

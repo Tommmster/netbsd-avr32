@@ -1,4 +1,4 @@
-/* 	$NetBSD$	*/  
+/* 	$NetBSD$	*/
 
 /*-
  * Copyright (c) 2013 The NetBSD Foundation, Inc.
@@ -34,6 +34,8 @@
 
 #include <avr32/locore.h>
 #include <avr32/cpuregs.h>
+
+extern struct segtab *segbase;
 
 static const char *xcpt_names[] = {
 	"Unrecoverable Exception",	/* evba + 0x00  */
@@ -95,22 +97,18 @@ exception_name(unsigned int offset)
 void
 handle_with_panic(unsigned int ecr, unsigned int pc, unsigned int bear)
 {
-	avr32_tlb_dump();
-
 	printf("args: 0x%x 0x%x 0x%x\n", ecr, pc, bear);
+
 	printf("ECR at: 0x%x\n", AVR32_MFSR(SR_ECR));
-	printf("RAR_SUP at: 0x%x\n", AVR32_MFSR(SR_RAR_SUP));
-	printf("SR at: 0x%x\n", AVR32_MFSR(SR_STATUS));
-	printf("RAR_SR at: 0x%x\n", AVR32_MFSR(SR_RSR_EX));
+	printf("RAR_SUP at: 0x%x / RAR_EX at: 0x%x\n", AVR32_MFSR(SR_RAR_SUP), AVR32_MFSR(SR_RAR_EX));
+	printf("SR at: 0x%x, TLBEAR: 0x%x\n", AVR32_MFSR(SR_STATUS), bear);
+	printf("RSR_EX at: 0x%x\n", AVR32_MFSR(SR_RSR_EX));
 	
-	printf("*1074 : 0x%x\n", *((u_int *)AVR32_MFSR(SR_RAR_EX)));
-	
-	panic("%s: ecr: 0x%x 0x%x 0x%x",exception_name(ecr),ecr, pc, bear);
-	panic("handle_with_panic: 0x%x", ecr);
+	panic("%s: ecr: 0x%x pc: 0x%x bear: 0x%x",exception_name(ecr),ecr, pc, bear);
 }
 
 void
-handle_with_panic2(unsigned int ecr, unsigned int sr, unsigned int rsr_ex, unsigned int o)
+handle_with_panic2(unsigned int ecr, unsigned int sr, unsigned int rsr_ex, unsigned int sp)
 {
 	#define RSR_INT0	AVR32_MFSR(SR_RSR_INT0)
 	#define RSR_INT1	AVR32_MFSR(SR_RSR_INT1)
@@ -120,14 +118,15 @@ handle_with_panic2(unsigned int ecr, unsigned int sr, unsigned int rsr_ex, unsig
 	#define EM_M	(1<<21)
 	#define EENABLED(i)	((i) & EM_M ?"Masked": "Unmasked")
 
+	printf("%s: SR: 0x%x RSR_EX: 0x%x SP: 0x%x \n", exception_name(ecr), sr, rsr_ex,sp);
+	printf("TLBEAR 0x%x\n", AVR32_MFSR(SR_TLBEAR));
+
 	printf("Interruptions status: INT0 0x%x INT1 0x%x INT2 0x%x INT3 0x%x\n", RSR_INT0, RSR_INT1,  RSR_INT2, RSR_INT3);
 	printf("Exceptions enabled?: At I0 %s At I1 %s At I2 %s At I3 %s\n", EENABLED(RSR_INT0),EENABLED(RSR_INT1) ,EENABLED(RSR_INT2),EENABLED(RSR_INT3));
 
+	printf("segbase 0x%x\n", segbase);
 	printf("RAR_EX at: 0x%x\n", AVR32_MFSR(SR_RAR_EX));
 	panic("handle_with_panic 2");
-	printf("%s: SR: 0x%x RSR_EX: 0x%x \n", exception_name(ecr), sr, rsr_ex);
-	avr32_tlb_dump();
-	panic("handle with panic2");
 }
 
 void
@@ -137,6 +136,5 @@ handle_protection(unsigned int ecr, unsigned int tlbear, unsigned int rar_ex)
 	const char *ename = exception_name(ecr);
 
 	printf("%s. RAR_EX at 0x%x\n", ename, rar_ex);
-	avr32_tlb_dump();
 	panic("%s. badvaddr: 0x%x", ename, tlbear);
 }

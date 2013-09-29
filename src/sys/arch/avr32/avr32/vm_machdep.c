@@ -124,6 +124,7 @@ cpu_lwp_fork(struct lwp *l1, struct lwp *l2, void *stack, size_t stacksize,
 	pcb->pcb_context[8] = (intptr_t)l2;			/* r2 */
 	pcb->pcb_context[2] = (intptr_t)f;			/* sp */
 	pcb->pcb_context[1] = (intptr_t)lwp_trampoline;		/* lr */
+	pcb->pcb_context[0] = (intptr_t)ipl2spl_table[IPL_SCHED];
 }
 
 /*

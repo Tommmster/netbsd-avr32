@@ -113,7 +113,6 @@ ELFNAME2(linux,atexit_signature)(l, epp, eh)
 	strndx = (int)(eh->e_shstrndx);
 	if (strndx == SHN_UNDEF) {
 		error = ENOEXEC;
-		printf("[XXXAVR32] %s %s %d", __FILE__, __FUNCTION__, __LINE__);	
 		goto out;
 	}
 
@@ -139,12 +138,10 @@ ELFNAME2(linux,atexit_signature)(l, epp, eh)
 		}
 	}
 	error = ENOEXEC; 
-	printf("[XXXAVR32] %s %s %d\n", __FILE__, __FUNCTION__, __LINE__);	
 out:
 	free(sh, M_TEMP);
 	if (strtable)
 		free(strtable, M_TEMP);
-	printf("[XXXAVR32] %s %s %d error: %d\n", __FILE__, __FUNCTION__, __LINE__, error);
 	return (error);
 }
 #endif
@@ -174,7 +171,6 @@ ELFNAME2(linux,gcc_signature)(l, epp, eh)
 	Elf_Shdr *sh;
 	int error;
 
-	printf("[XXXAVR32] %s %s %d \n", __FILE__, __FUNCTION__, __LINE__);
 	shsize = eh->e_shnum * sizeof(Elf_Shdr);
 	sh = (Elf_Shdr *) malloc(shsize, M_TEMP, M_WAITOK);
 	error = exec_read_from(l, epp->ep_vp, eh->e_shoff, sh, shsize);
@@ -212,7 +208,6 @@ ELFNAME2(linux,gcc_signature)(l, epp, eh)
 	error = ENOEXEC;
 out:
 	free(sh, M_TEMP);
-	printf("[XXXAVR32] %s %s %d error: %d\n", __FILE__, __FUNCTION__, __LINE__, error);
 	return (error);
 }
 #endif
@@ -236,7 +231,6 @@ ELFNAME2(linux,debuglink_signature)(l, epp, eh)
 
 	int error;
 
-	panic("[XXXAVR32] %s %s %d", __FILE__, __FUNCTION__, __LINE__);
 	/*
 	 * load the section header table
 	 */
@@ -252,7 +246,6 @@ ELFNAME2(linux,debuglink_signature)(l, epp, eh)
 	strndx = (int)(eh->e_shstrndx);
 	if (strndx == SHN_UNDEF) {
 		error = ENOEXEC;
-		panic("[XXXAVR32] %s %s %d", __FILE__, __FUNCTION__, __LINE__);
 		goto out;
 	}
 
@@ -279,7 +272,6 @@ ELFNAME2(linux,debuglink_signature)(l, epp, eh)
 		}
 	}
 	error = ENOEXEC; 
-	panic("[XXXAVR32] %s %s %d", __FILE__, __FUNCTION__, __LINE__);
 out:
 	free(sh, M_TEMP);
 	if (strtable)
@@ -339,10 +331,8 @@ ELFNAME2(linux,signature)(l, epp, eh, itp)
 		    np->n_namesz);
 		if (abi[0] == ELF_NOTE_ABI_OS_LINUX)
 			error = 0;
-		else { /* XXXAVR32 */
+		else 
 			error = ENOEXEC;
-			panic("[XXXAVR32] %s %s %d", __FILE__, __FUNCTION__, __LINE__);
-		}
 		free(np, M_TEMP);
 		goto out;
 
@@ -361,7 +351,6 @@ ELFNAME2(linux,signature)(l, epp, eh, itp)
 			error = 0;
 		else{
 			error = ENOEXEC;
-			panic("[XXXAVR32] %s %s %d", __FILE__, __FUNCTION__, __LINE__);
 		}
 		goto out;
 	}
@@ -369,7 +358,6 @@ ELFNAME2(linux,signature)(l, epp, eh, itp)
 	error = ENOEXEC;
 out:
 	free(ph, M_TEMP);
-	printf("[XXXAVR32] %s %s %d error: %d\n", __FILE__, __FUNCTION__, __LINE__, error);
 	return (error);
 }
 

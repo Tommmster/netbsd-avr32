@@ -1,4 +1,4 @@
-/* 	$NetBSD$	 */
+/* 	$NetBSD$	*/
 
 /*-
  * Copyright (c) 2013 The NetBSD Foundation, Inc.
@@ -32,25 +32,23 @@
 #include <sys/cdefs.h>
 #include <sys/errno.h>
 
-#include "assym.h"
+#include <avr32/asm.h>
 
+#include "assym.h"
 
 /*
  * kcopy(const void *src, void *dst, size_t len);
  *
- * Copy len bytes from src to dst, aborting if we encounter a fatal 
+ * Copy len bytes from src to dst, aborting if we encounter a fatal
  * page fault.
  *
  * kcopy() _must_ save and restore the old fault handler since it is
  * called by uiomove(), which may be in the path of servicing a non-fatal
  * page fault.
  */
-	.text
-	.globl kcopy
-	.align 2
+ENTRY(kcopy)
+	stm	--sp, r0,lr
 
-kcopy:
-	stm	--sp, r0, lr
 	/* Swap r12 <-> r11 for call to memcpy. */
 	mov	r8, r12
 	mov	r12, r11
@@ -63,6 +61,7 @@ kcopy:
 	ld.w	r0, r8[U_PCB_ONFAULT]
 	lda.w	r9, kcopyerr
 	st.w	r8[U_PCB_ONFAULT], r9
+
 	/* All set. */
 	rcall	memcpy
 
@@ -76,20 +75,16 @@ kcopy:
 	ldm	sp++, r0, lr
 	mov	r12, 0
 	mov	pc, lr
-	.size	kcopy, . - kcopy
+END(kcopy)
 
 /*
  * int copystr(void *kfaddr, void *kdaddr, size_t maxlen, size_t *lencopied)
  *
- * Copy a NIL-terminated string, at most maxlen characters long.  Return the
- * number of characters copied (including the NIL) in *lencopied.  If the  
+ * Copy a NIL-terminated string, at most maxlen characters long. Return the
+ * number of characters copied (including the NIL) in *lencopied. If the
  * string is too long, return ENAMETOOLONG; else return 0.
  */
-	.text
-	.globl copystr
-	.align 1
-
-copystr:
+ENTRY(copystr)
 	stm	--sp, r7,lr
 
 	mov	r7, r10
@@ -112,8 +107,8 @@ copystr:
 	mov	r12, ENAMETOOLONG
 
 	/* 
-	 * return the number of copied bytes in the
-	 * 4th argument if its non-NULL 
+	 * Return the number of copied bytes in the
+	 * 4th argument if it is non-NULL.
 	 */
 2:	cp.w	r9, 0		
 	breq	3f	
@@ -125,7 +120,7 @@ copystr:
 	bral	2b
 
 3:	ldm	sp++, r7,pc
-	.size 	copystr, . - copystr
+END(copystr)
 
 /*
  * int copyin(void *uaddr, void *kaddr, size_t len)
@@ -133,29 +128,30 @@ copystr:
  * kernel-space address kaddr.  copyin returns 0 on success or EFAULT
  * if a bad address is encountered.
  */
-	.text
-	.globl copyin
-	.align 1
-copyin:	
+ENTRY(copyin)
 	stm	--sp, lr
 
-	/* 
-	 * Set copyerr for exception handling
-	 */
+	cp.w	r12, 0
+	brle	copyerr
+
+	/* Swap r12 <-> r11 for call to memcpy. */
+	mov	r8, r12
+	mov	r12, r11
+	mov	r11, r8
+
+	/* Set up fault handler. */
 	lda.w	r8, avr32_curlwp
 	ld.w	r8, r8[0]
 	ld.w	r8, r8[L_ADDR]
 	lda.w	r9, copyerr
 	ld.w	r9, r9[0]
 	st.w	r8[U_PCB_ONFAULT], r9
-	
-	mov	r9, r12
-	mov	r12, r11
-	mov	r11, r9
+
+	/* All set. */
 	rcall	memcpy
 
 	/*
-	 * reset the error handler
+	 * Reset the error handler.
 	 */
 	lda.w	r8, avr32_curlwp
 	ld.w	r8, r8[0]	
@@ -163,26 +159,31 @@ copyin:
 	mov	r9, 0
 	st.w	r8[U_PCB_ONFAULT], r9
 
+	/* Success! */
+	ldm	sp++, lr
 	mov	r12, 0
-	ldm	sp++, pc
-	.size copyin, .-copyin
+	mov	pc, lr
+END(copyin)
 
-/*          
+/* 
  * int copyout(void *kaddr, void *uaddr, size_t len)
  * Copies len bytes of data from the kernel-space address kaddr to the
  * user-space address uaddr.  copyout returns 0 on success or EFAULT
  * if a bad address is encountered.
- */   
-	.text
-	.globl copyout
-	.align 1
-
-copyout:
-#if 1
+ */
+ENTRY(copyout)
 	stm	--sp, lr
 
+	cp.w	r11, 0
+	brlt	copyerr
+
+	/* Swap r12 <-> r11 for call to memcpy. */
+	mov	r8, r12
+	mov	r12, r11
+	mov	r11, r8
+
 	/* 
-	 * Set copyerr for exception handling
+	 * Set copyerr for exception handling.
 	 */
 	lda.w	r8, avr32_curlwp
 	ld.w	r8, r8[0]
@@ -190,14 +191,12 @@ copyout:
 	lda.w	r9, copyerr
 	ld.w	r9, r9[0]
 	st.w	r8[U_PCB_ONFAULT], r9
-	
-	mov	r9, r12
-	mov	r12, r11
-	mov	r11, r9
+
+	/* All set. */
 	rcall	memcpy
 
 	/*
-	 * reset the error handler
+	 * Reset the error handler.
 	 */
 	lda.w	r8, avr32_curlwp
 	ld.w	r8, r8[0]	
@@ -205,55 +204,24 @@ copyout:
 	mov	r9, 0
 	st.w	r8[U_PCB_ONFAULT], r9
 
-	mov	r12, 0	
-	ldm	sp++, pc
-#else
-	lda.w	r12, copyout_panic
-	rcall	panic
-	.size copyout, . -copyout
+	/* Success! */
+	ldm	sp++, lr
+	mov	r12, 0
+	mov	pc, lr
+END(copyout)
 
-	.align 2
-copyout_panic: 
-	.asciz "copyout"
-#endif 
-
-	.text
-	.globl copyerr
-	.align 1
-
-copyerr:
-#if notyet
-	stm	--sp, lr
-
-	lda.w	r12, avr32_curlwp
-	ld.w	r12, r12[0]	
-	ld.w	r12, r12[L_ADDR]
-
-	mov	r11, 0
-	st.w	r12[U_PCB_ONFAULT], r11
-
-	mov	r12, EFAULT
-	ldm	sp++, pc
-#else
-	lda.w	r12, copyerr_panic	
-	rcall	panic
-	
-copyerr_panic: 
-	.asciz "copyerr"
-#endif
+ENTRY(copyerr)
+	PANIC("copyerr: notyet");
+END(copyerr)
 
 /*
  * int copyinstr(void *uaddr, void *kaddr, size_t maxlen, size_t *lencopied)
  * Copy a NIL-terminated string, at most maxlen characters long, from the
- * user's address space.  Return the number of characters copied (including
- * the NIL) in *lencopied.  If the string is too long, return ENAMETOOLONG;
- * else return 0 or EFAULT. 
+ * user's address space. Return the number of characters copied (including
+ * the NIL) in *lencopied. If the string is too long, return ENAMETOOLONG;
+ * else return 0 or EFAULT.
  */
-	.text
-	.globl copyinstr
-	.align 2
-
-copyinstr:
+ENTRY(copyinstr)
 	/* Must use some extra registers */
 	stm	--sp, r6-r7,lr
 	mov	r7, r10
@@ -292,21 +260,19 @@ copyinstr:
 	mov	r6, 0
 	st.w	r8[U_PCB_ONFAULT], r6
 
-	ldm	sp++,r6-r7,pc
+	ldm	sp++, r6-r7,pc
 4:	mov	r12, 1
 	bral	3b
-	.size copyinstr, . - copyinstr
+END(copyinstr)
+
 /*
  * int copyoutstr(void *kaddr, void *uaddr, size_t maxlen, size_t *lencopied);
  * Copy a NIL-terminated string, at most maxlen characters long, into the
- * user's address space.  Return the number of characters copied (including
- * the NIL) in *lencopied.  If the string is too long, return ENAMETOOLONG;
+ * user's address space. Return the number of characters copied (including
+ * the NIL) in *lencopied. If the string is too long, return ENAMETOOLONG;
  * else return 0 or EFAULT.
  */
-	.text
-	.globl copyoutstr
-	.align 2
-copyoutstr:
+ENTRY(copyoutstr)
 	/* Must use some extra registers */
 	stm	--sp, r6-r7, lr
 	mov	r7, r10
@@ -323,7 +289,7 @@ copyoutstr:
 
 1:	ld.ub	r8, r12[0]
 	sub	r10, 1
-	st.b	r11[0], r8 
+	st.b	r11[0], r8
 	cp.w	r8, 0
 	moveq	r12, 0
 	breq	2f
@@ -346,33 +312,22 @@ copyoutstr:
 	mov	r6, 0
 	st.w	r8[U_PCB_ONFAULT], r6
 
-	ldm	sp++, r6-r7, lr
+	ldm	sp++, r6-r7,lr
 	mov	pc, lr
+END(copyoutstr)
 
-	.size copyoutstr, .-copyoutstr
+ENTRY(copystrerr)
+	PANIC("copystrerr: notyet");
+END(copystrerr)
 
-	.text
-	.globl copystrerr
-	.align 2
-copystrerr:
-	lda.w	r12, copystrerr_panic	
-	rcall	panic
-
-	.align 2
-copystrerr_panic: 
-	.asciz "copystrerr"
-	
-/*       
+/* 
  * int suword(void *, int)
  * Stores a word of data to the user-space address.
- */   
-	.text
-	.globl suword
-	.align 1
-suword:
+ */
+ENTRY(suword)
 	stm	--sp, lr
 
-	/* Set fswberr for exception handling */
+	/* Set fswberr for exception handling. */
 	lda.w	r8, avr32_curlwp
 	ld.w	r8, r8[0]
 	ld.w	r8, r8[L_ADDR]
@@ -380,31 +335,35 @@ suword:
 	ld.w	r9, r9[0]
 	st.w	r8[U_PCB_ONFAULT], r9
 
-	/* All set: store word */
+	cp.w	r12, 0
+	brle	fswberr
+
+	/* Store word. */
 	st.w	r12[0], r11
 
-	mov	r11, 0
-	st.w	r8[U_PCB_ONFAULT], r11
-	ldm	sp++, pc
-	.size suword, . - suword
+	/* Clear out fault handler. */
+	lda.w	r8, avr32_curlwp
+	ld.w	r8, r8[0]
+	ld.w	r8, r8[L_ADDR]
+	mov	r9, 0
+	st.w	r8[U_PCB_ONFAULT], r9
 
-fswberr:
-	lda.w	r12, fswberr_panic	
-	rcall panic
+	/* Success! */
+	ldm	sp++, lr
+	mov	r12, 0
+	mov	pc, lr
+END(suword)
 
-fswberr_panic:
-	.asciz "fswberr_panic"		
+ENTRY(fswberr)
+	PANIC("fswberr: notyet");
+END(fswberr)
 
 /*
  * int badaddr(void addr, int len)
  * See if access to addr with a len type instruction causes a machine check.
  * len is length of access (1=byte, 2=short, 4=long)
  */
-	.section .text,"ax",@progbits
-	.global badaddr
-	.align 2
-
-badaddr:
+ENTRY(badaddr)
 	/* Set up fault handler. */
 	lda.w	r8, avr32_curlwp
 	ld.w	r8, r8[0]
@@ -417,17 +376,12 @@ badaddr:
 
 	cp.w	r11, 2 /* short */
 	breq	2f
-#if 1
+
 	cp.w	r11, 4 /* long */
 	breq	4f
 
-	lda.w	r12, L_BADADDR_PANIC_MESG
-	rcall	panic
+	PANIC("badaddr: invalid len");
 
-L_BADADDR_PANIC_MESG:
-	.asciz "badaddr: invalid len"
-	.align 2
-#endif
 4:	ld.w	r10, r12[0]
 	bral	5f
 
@@ -439,5 +393,22 @@ L_BADADDR_PANIC_MESG:
 
 5:	mov	r12, 0
 	st.w	r8[U_PCB_ONFAULT], r12
+
 	mov	pc, lr
-	.size badaddr, . - badaddr
+END(badaddr)
+
+/*
+ * int subyte(void *, int)
+ * Stores a byte of data to the user-space address.
+ */
+ENTRY(subyte)
+	lda.w	r8, avr32_curlwp
+	ld.w	r8, r8[0]
+	ld.w	r8, r8[L_ADDR]
+	lda.w	r9, fswberr
+	st.w	r8[U_PCB_ONFAULT], r9
+	st.b	r12[0], r11
+	mov	r12, 0
+	st.w	r8[U_PCB_ONFAULT], r12
+	mov	pc, lr
+END(subyte)

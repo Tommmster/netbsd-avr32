@@ -1,4 +1,4 @@
-/*	$NetBSD$	*/  
+/*	$NetBSD$	*/
 
 /*-
  * Copyright (c) 2013 The NetBSD Foundation, Inc.
@@ -38,7 +38,7 @@
 #define _R_R3	13
 #define _R_R4	12
 #define _R_R5	11
-#define _R_R6	10	
+#define _R_R6	10
 #define _R_R7	9
 #define _R_R8	8
 #define _R_R9	7

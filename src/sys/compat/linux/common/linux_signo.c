@@ -131,6 +131,8 @@ const int native_to_linux_signo[NSIG];
 #include <compat/linux/arch/arm/linux_sigarray.c>
 #elif defined(__amd64__)
 #include <compat/linux/arch/amd64/linux_sigarray.c>
+#elif defined(__avr32__)
+#include <compat/linux/arch/avr32/linux_sigarray.c>
 #else
 const int linux_to_native_signo[NSIG];
 #endif

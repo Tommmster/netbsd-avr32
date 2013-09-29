@@ -11,593 +11,288 @@
 #define	_LINUX_SYS_SYSCALL_H_
 
 #define	LINUX_SYS_MAXSYSARGS	8
-
-/* syscall: "syscall" ret: "int" args: */
-#define	LINUX_SYS_syscall	0
-
-/* syscall: "exit" ret: "int" args: "int" */
-#define	LINUX_SYS_exit	1
-
-/* syscall: "fork" ret: "int" args: */
-#define	LINUX_SYS_fork	2
-
-/* syscall: "read" ret: "int" args: "int" "char *" "u_int" */
-#define	LINUX_SYS_read	3
-
-/* syscall: "write" ret: "int" args: "int" "char *" "u_int" */
-#define	LINUX_SYS_write	4
-
-/* syscall: "open" ret: "int" args: "const char *" "int" "int" */
-#define	LINUX_SYS_open	5
-
-/* syscall: "close" ret: "int" args: "int" */
-#define	LINUX_SYS_close	6
-
-/* syscall: "waitpid" ret: "int" args: "int" "int *" "int" */
-#define	LINUX_SYS_waitpid	7
-
-/* syscall: "creat" ret: "int" args: "const char *" "int" */
-#define	LINUX_SYS_creat	8
-
-/* syscall: "link" ret: "int" args: "const char *" "const char *" */
-#define	LINUX_SYS_link	9
-
-/* syscall: "unlink" ret: "int" args: "const char *" */
-#define	LINUX_SYS_unlink	10
-
-/* syscall: "execve" ret: "int" args: "const char *" "char **" "char **" */
-#define	LINUX_SYS_execve	11
-
-/* syscall: "chdir" ret: "int" args: "const char *" */
-#define	LINUX_SYS_chdir	12
-
-/* syscall: "time" ret: "int" args: "linux_time_t *" */
-#define	LINUX_SYS_time	13
-
-/* syscall: "mknod" ret: "int" args: "const char *" "int" "int" */
-#define	LINUX_SYS_mknod	14
-
-/* syscall: "chmod" ret: "int" args: "const char *" "int" */
-#define	LINUX_SYS_chmod	15
-
-/* syscall: "__posix_lchown" ret: "int" args: "const char *" "int" "int" */
-#define	LINUX_SYS___posix_lchown	16
-
-				/* 18 is obsolete ostat */
-/* syscall: "lseek" ret: "long" args: "int" "long" "int" */
-#define	LINUX_SYS_lseek	19
-
-/* syscall: "getpid" ret: "pid_t" args: */
-#define	LINUX_SYS_getpid	20
-
-				/* 22 is obsolete umount */
-/* syscall: "setuid" ret: "int" args: "uid_t" */
-#define	LINUX_SYS_setuid	23
-
-/* syscall: "getuid" ret: "uid_t" args: */
-#define	LINUX_SYS_getuid	24
-
-/* syscall: "stime" ret: "int" args: "linux_time_t *" */
-#define	LINUX_SYS_stime	25
-
-/* syscall: "ptrace" ret: "int" args: "int" "int" "int" "int" */
-#define	LINUX_SYS_ptrace	26
-
-/* syscall: "alarm" ret: "int" args: "unsigned int" */
-#define	LINUX_SYS_alarm	27
-
-				/* 28 is obsolete ofstat */
-/* syscall: "pause" ret: "int" args: */
-#define	LINUX_SYS_pause	29
-
-/* syscall: "utime" ret: "int" args: "const char *" "struct linux_utimbuf *" */
-#define	LINUX_SYS_utime	30
-
-/* syscall: "access" ret: "int" args: "const char *" "int" */
-#define	LINUX_SYS_access	33
-
-/* syscall: "nice" ret: "int" args: "int" */
-#define	LINUX_SYS_nice	34
-
-/* syscall: "sync" ret: "int" args: */
-#define	LINUX_SYS_sync	36
-
-/* syscall: "kill" ret: "int" args: "int" "int" */
-#define	LINUX_SYS_kill	37
-
-/* syscall: "__posix_rename" ret: "int" args: "const char *" "const char *" */
-#define	LINUX_SYS___posix_rename	38
-
-/* syscall: "mkdir" ret: "int" args: "const char *" "int" */
-#define	LINUX_SYS_mkdir	39
-
-/* syscall: "rmdir" ret: "int" args: "const char *" */
-#define	LINUX_SYS_rmdir	40
-
-/* syscall: "dup" ret: "int" args: "u_int" */
-#define	LINUX_SYS_dup	41
-
-/* syscall: "pipe" ret: "int" args: "int *" */
-#define	LINUX_SYS_pipe	42
-
-/* syscall: "times" ret: "int" args: "struct times *" */
-#define	LINUX_SYS_times	43
-
-/* syscall: "brk" ret: "int" args: "char *" */
-#define	LINUX_SYS_brk	45
-
-/* syscall: "setgid" ret: "int" args: "gid_t" */
-#define	LINUX_SYS_setgid	46
-
-/* syscall: "getgid" ret: "gid_t" args: */
-#define	LINUX_SYS_getgid	47
-
-/* syscall: "signal" ret: "int" args: "int" "linux___sighandler_t" */
-#define	LINUX_SYS_signal	48
-
-/* syscall: "geteuid" ret: "uid_t" args: */
-#define	LINUX_SYS_geteuid	49
-
-/* syscall: "getegid" ret: "gid_t" args: */
-#define	LINUX_SYS_getegid	50
-
-/* syscall: "acct" ret: "int" args: "char *" */
-#define	LINUX_SYS_acct	51
-
-/* syscall: "ioctl" ret: "int" args: "int" "u_long" "void *" */
-#define	LINUX_SYS_ioctl	54
-
-/* syscall: "fcntl" ret: "int" args: "int" "int" "void *" */
-#define	LINUX_SYS_fcntl	55
-
-				/* 56 is obsolete mpx */
-/* syscall: "setpgid" ret: "int" args: "int" "int" */
-#define	LINUX_SYS_setpgid	57
-
-/* syscall: "olduname" ret: "int" args: "struct linux_old_utsname *" */
-#define	LINUX_SYS_olduname	59
-
-/* syscall: "umask" ret: "int" args: "int" */
-#define	LINUX_SYS_umask	60
-
-/* syscall: "chroot" ret: "int" args: "char *" */
-#define	LINUX_SYS_chroot	61
-
-/* syscall: "dup2" ret: "int" args: "u_int" "u_int" */
-#define	LINUX_SYS_dup2	63
-
-/* syscall: "getppid" ret: "pid_t" args: */
-#define	LINUX_SYS_getppid	64
-
-/* syscall: "getpgrp" ret: "int" args: */
-#define	LINUX_SYS_getpgrp	65
-
-/* syscall: "setsid" ret: "int" args: */
-#define	LINUX_SYS_setsid	66
-
-/* syscall: "sigaction" ret: "int" args: "int" "const struct linux_old_sigaction *" "struct linux_old_sigaction *" */
-#define	LINUX_SYS_sigaction	67
-
-/* syscall: "siggetmask" ret: "int" args: */
-#define	LINUX_SYS_siggetmask	68
-
-/* syscall: "sigsetmask" ret: "int" args: "linux_old_sigset_t" */
-#define	LINUX_SYS_sigsetmask	69
-
-/* syscall: "setreuid" ret: "int" args: "uid_t" "uid_t" */
-#define	LINUX_SYS_setreuid	70
-
-/* syscall: "setregid" ret: "int" args: "gid_t" "gid_t" */
-#define	LINUX_SYS_setregid	71
-
-/* syscall: "sigsuspend" ret: "int" args: "void *" "int" "int" */
-#define	LINUX_SYS_sigsuspend	72
-
-/* syscall: "sigpending" ret: "int" args: "linux_old_sigset_t *" */
-#define	LINUX_SYS_sigpending	73
-
-/* syscall: "sethostname" ret: "int" args: "char *" "u_int" */
-#define	LINUX_SYS_sethostname	74
-
-/* syscall: "setrlimit" ret: "int" args: "u_int" "struct orlimit *" */
-#define	LINUX_SYS_setrlimit	75
-
-/* syscall: "getrlimit" ret: "int" args: "u_int" "struct orlimit *" */
-#define	LINUX_SYS_getrlimit	76
-
-/* syscall: "getrusage" ret: "int" args: "int" "struct rusage *" */
-#define	LINUX_SYS_getrusage	77
-
-/* syscall: "gettimeofday" ret: "int" args: "struct timeval *" "struct timezone *" */
-#define	LINUX_SYS_gettimeofday	78
-
-/* syscall: "settimeofday" ret: "int" args: "struct timeval *" "struct timezone *" */
-#define	LINUX_SYS_settimeofday	79
-
-/* syscall: "getgroups" ret: "int" args: "u_int" "gid_t *" */
-#define	LINUX_SYS_getgroups	80
-
-/* syscall: "setgroups" ret: "int" args: "u_int" "gid_t *" */
-#define	LINUX_SYS_setgroups	81
-
-/* syscall: "symlink" ret: "int" args: "const char *" "const char *" */
-#define	LINUX_SYS_symlink	83
-
-/* syscall: "oolstat" ret: "int" args: "const char *" "struct stat43 *" */
-#define	LINUX_SYS_oolstat	84
-
-/* syscall: "readlink" ret: "int" args: "const char *" "char *" "int" */
-#define	LINUX_SYS_readlink	85
-
-/* syscall: "swapon" ret: "int" args: "char *" */
-#define	LINUX_SYS_swapon	87
-
-/* syscall: "reboot" ret: "int" args: "int" "int" "int" "void *" */
-#define	LINUX_SYS_reboot	88
-
-/* syscall: "readdir" ret: "int" args: "int" "void *" "unsigned int" */
-#define	LINUX_SYS_readdir	89
-
-/* syscall: "mmap" ret: "int" args: "unsigned long" "size_t" "int" "int" "int" "linux_off_t" */
-#define	LINUX_SYS_mmap	90
-
-/* syscall: "munmap" ret: "int" args: "void *" "int" */
-#define	LINUX_SYS_munmap	91
-
-/* syscall: "truncate" ret: "int" args: "const char *" "long" */
-#define	LINUX_SYS_truncate	92
-
-/* syscall: "ftruncate" ret: "int" args: "int" "long" */
-#define	LINUX_SYS_ftruncate	93
-
-/* syscall: "fchmod" ret: "int" args: "int" "int" */
-#define	LINUX_SYS_fchmod	94
-
-/* syscall: "__posix_fchown" ret: "int" args: "int" "int" "int" */
-#define	LINUX_SYS___posix_fchown	95
-
-/* syscall: "getpriority" ret: "int" args: "int" "int" */
-#define	LINUX_SYS_getpriority	96
-
-/* syscall: "setpriority" ret: "int" args: "int" "int" "int" */
-#define	LINUX_SYS_setpriority	97
-
-/* syscall: "statfs" ret: "int" args: "const char *" "struct linux_statfs *" */
-#define	LINUX_SYS_statfs	99
-
-/* syscall: "fstatfs" ret: "int" args: "int" "struct linux_statfs *" */
-#define	LINUX_SYS_fstatfs	100
-
-/* syscall: "ioperm" ret: "int" args: "unsigned int" "unsigned int" "int" */
-#define	LINUX_SYS_ioperm	101
-
-/* syscall: "socketcall" ret: "int" args: "int" "void *" */
-#define	LINUX_SYS_socketcall	102
-
-/* syscall: "setitimer" ret: "int" args: "u_int" "struct itimerval *" "struct itimerval *" */
-#define	LINUX_SYS_setitimer	104
-
-/* syscall: "getitimer" ret: "int" args: "u_int" "struct itimerval *" */
-#define	LINUX_SYS_getitimer	105
-
-/* syscall: "stat" ret: "int" args: "const char *" "struct linux_stat *" */
-#define	LINUX_SYS_stat	106
-
-/* syscall: "lstat" ret: "int" args: "const char *" "struct linux_stat *" */
-#define	LINUX_SYS_lstat	107
-
-/* syscall: "fstat" ret: "int" args: "int" "struct linux_stat *" */
-#define	LINUX_SYS_fstat	108
-
-/* syscall: "uname" ret: "int" args: "struct linux_utsname *" */
-#define	LINUX_SYS_uname	109
-
-/* syscall: "wait4" ret: "int" args: "int" "int *" "int" "struct rusage *" */
-#define	LINUX_SYS_wait4	114
-
-/* syscall: "swapoff" ret: "int" args: "const char *" */
-#define	LINUX_SYS_swapoff	115
-
-/* syscall: "sysinfo" ret: "int" args: "struct linux_sysinfo *" */
-#define	LINUX_SYS_sysinfo	116
-
-/* syscall: "ipc" ret: "int" args: "int" "int" "int" "int" "void *" */
-#define	LINUX_SYS_ipc	117
-
-/* syscall: "fsync" ret: "int" args: "int" */
-#define	LINUX_SYS_fsync	118
-
-/* syscall: "sigreturn" ret: "int" args: "struct linux_sigframe *" */
-#define	LINUX_SYS_sigreturn	119
-
-/* syscall: "clone" ret: "int" args: "int" "void *" */
-#define	LINUX_SYS_clone	120
-
-/* syscall: "setdomainname" ret: "int" args: "char *" "int" */
-#define	LINUX_SYS_setdomainname	121
-
-/* syscall: "new_uname" ret: "int" args: "struct linux_utsname *" */
-#define	LINUX_SYS_new_uname	122
-
-/* syscall: "mprotect" ret: "int" args: "const void *" "unsigned long" "int" */
-#define	LINUX_SYS_mprotect	125
-
-/* syscall: "sigprocmask" ret: "int" args: "int" "const linux_old_sigset_t *" "linux_old_sigset_t *" */
-#define	LINUX_SYS_sigprocmask	126
-
-/* syscall: "getpgid" ret: "pid_t" args: "pid_t" */
-#define	LINUX_SYS_getpgid	132
-
-/* syscall: "fchdir" ret: "int" args: "int" */
-#define	LINUX_SYS_fchdir	133
-
-/* syscall: "personality" ret: "int" args: "int" */
-#define	LINUX_SYS_personality	136
-
-/* syscall: "setfsuid" ret: "int" args: "uid_t" */
-#define	LINUX_SYS_setfsuid	138
-
-/* syscall: "setfsgid" ret: "int" args: "gid_t" */
-#define	LINUX_SYS_setfsgid	139
-
-/* syscall: "llseek" ret: "int" args: "int" "u_int32_t" "u_int32_t" "void *" "int" */
-#define	LINUX_SYS_llseek	140
-
-/* syscall: "getdents" ret: "int" args: "int" "struct linux_dirent *" "unsigned int" */
-#define	LINUX_SYS_getdents	141
-
-/* syscall: "select" ret: "int" args: "int" "fd_set *" "fd_set *" "fd_set *" "struct timeval *" */
-#define	LINUX_SYS_select	142
-
-/* syscall: "flock" ret: "int" args: "int" "int" */
-#define	LINUX_SYS_flock	143
-
-/* syscall: "__msync13" ret: "int" args: "void *" "size_t" "int" */
-#define	LINUX_SYS___msync13	144
-
-/* syscall: "readv" ret: "int" args: "int" "struct iovec *" "u_int" */
-#define	LINUX_SYS_readv	145
-
-/* syscall: "writev" ret: "int" args: "int" "struct iovec *" "u_int" */
-#define	LINUX_SYS_writev	146
-
-/* syscall: "cacheflush" ret: "int" args: "void *" "int" "int" */
-#define	LINUX_SYS_cacheflush	147
-
-/* syscall: "sysmips" ret: "int" args: "int" "int" "int" "int" */
-#define	LINUX_SYS_sysmips	149
-
-/* syscall: "getsid" ret: "pid_t" args: "pid_t" */
-#define	LINUX_SYS_getsid	151
-
-/* syscall: "fdatasync" ret: "int" args: "int" */
-#define	LINUX_SYS_fdatasync	152
-
-/* syscall: "__sysctl" ret: "int" args: "struct linux___sysctl *" */
-#define	LINUX_SYS___sysctl	153
-
-/* syscall: "mlock" ret: "int" args: "void *" "size_t" */
-#define	LINUX_SYS_mlock	154
-
-/* syscall: "munlock" ret: "int" args: "void *" "size_t" */
-#define	LINUX_SYS_munlock	155
-
-/* syscall: "mlockall" ret: "int" args: "int" */
-#define	LINUX_SYS_mlockall	156
-
-/* syscall: "munlockall" ret: "int" args: */
-#define	LINUX_SYS_munlockall	157
-
-/* syscall: "sched_setparam" ret: "int" args: "pid_t" "const struct linux_sched_param *" */
-#define	LINUX_SYS_sched_setparam	158
-
-/* syscall: "sched_getparam" ret: "int" args: "pid_t" "struct linux_sched_param *" */
-#define	LINUX_SYS_sched_getparam	159
-
-/* syscall: "sched_setscheduler" ret: "int" args: "pid_t" "int" "const struct linux_sched_param *" */
-#define	LINUX_SYS_sched_setscheduler	160
-
-/* syscall: "sched_getscheduler" ret: "int" args: "pid_t" */
-#define	LINUX_SYS_sched_getscheduler	161
-
-/* syscall: "sched_yield" ret: "int" args: */
-#define	LINUX_SYS_sched_yield	162
-
-/* syscall: "sched_get_priority_max" ret: "int" args: "int" */
-#define	LINUX_SYS_sched_get_priority_max	163
-
-/* syscall: "sched_get_priority_min" ret: "int" args: "int" */
-#define	LINUX_SYS_sched_get_priority_min	164
-
-/* syscall: "nanosleep" ret: "int" args: "const struct linux_timespec *" "struct linux_timespec *" */
-#define	LINUX_SYS_nanosleep	166
-
-/* syscall: "mremap" ret: "void *" args: "void *" "size_t" "size_t" "u_long" */
-#define	LINUX_SYS_mremap	167
-
-/* syscall: "accept" ret: "int" args: "int" "struct osockaddr *" "int *" */
-#define	LINUX_SYS_accept	168
-
-/* syscall: "bind" ret: "int" args: "int" "const struct osockaddr *" "int" */
-#define	LINUX_SYS_bind	169
-
-/* syscall: "connect" ret: "int" args: "int" "const struct sockaddr *" "int" */
-#define	LINUX_SYS_connect	170
-
-/* syscall: "getpeername" ret: "int" args: "int" "void *" "int *" */
-#define	LINUX_SYS_getpeername	171
-
-/* syscall: "getsockname" ret: "int" args: "int" "void *" "int *" */
-#define	LINUX_SYS_getsockname	172
-
-/* syscall: "getsockopt" ret: "int" args: "int" "int" "int" "void *" "int *" */
-#define	LINUX_SYS_getsockopt	173
-
-/* syscall: "listen" ret: "int" args: "int" "int" */
-#define	LINUX_SYS_listen	174
-
-/* syscall: "recv" ret: "int" args: "int" "void *" "int" "int" */
-#define	LINUX_SYS_recv	175
-
-/* syscall: "recvfrom" ret: "int" args: "int" "void *" "int" "int" "struct osockaddr *" "int *" */
-#define	LINUX_SYS_recvfrom	176
-
-/* syscall: "recvmsg" ret: "int" args: "int" "struct msghdr *" "u_int" */
-#define	LINUX_SYS_recvmsg	177
-
-/* syscall: "send" ret: "int" args: "int" "void *" "int" "int" */
-#define	LINUX_SYS_send	178
-
-/* syscall: "sendmsg" ret: "int" args: "int" "struct msghdr *" "u_int" */
-#define	LINUX_SYS_sendmsg	179
-
-/* syscall: "sendto" ret: "int" args: "int" "void *" "int" "int" "struct osockaddr *" "int" */
-#define	LINUX_SYS_sendto	180
-
-/* syscall: "setsockopt" ret: "int" args: "int" "int" "int" "void *" "int" */
-#define	LINUX_SYS_setsockopt	181
-
-/* syscall: "socket" ret: "int" args: "int" "int" "int" */
-#define	LINUX_SYS_socket	183
-
-/* syscall: "socketpair" ret: "int" args: "int" "int" "int" "int *" */
-#define	LINUX_SYS_socketpair	184
-
-/* syscall: "setresuid" ret: "int" args: "uid_t" "uid_t" "uid_t" */
-#define	LINUX_SYS_setresuid	185
-
-/* syscall: "getresuid" ret: "int" args: "uid_t *" "uid_t *" "uid_t *" */
-#define	LINUX_SYS_getresuid	186
-
-/* syscall: "poll" ret: "int" args: "struct pollfd *" "u_int" "int" */
-#define	LINUX_SYS_poll	188
-
-/* syscall: "setresgid" ret: "int" args: "gid_t" "gid_t" "gid_t" */
-#define	LINUX_SYS_setresgid	190
-
-/* syscall: "getresgid" ret: "int" args: "gid_t *" "gid_t *" "gid_t *" */
-#define	LINUX_SYS_getresgid	191
-
-/* syscall: "rt_sigreturn" ret: "int" args: "struct linux_pt_regs" */
-#define	LINUX_SYS_rt_sigreturn	193
-
-/* syscall: "rt_sigaction" ret: "int" args: "int" "const struct linux_sigaction *" "struct linux_sigaction *" "size_t" */
-#define	LINUX_SYS_rt_sigaction	194
-
-/* syscall: "rt_sigprocmask" ret: "int" args: "int" "const linux_sigset_t *" "linux_sigset_t *" "size_t" */
-#define	LINUX_SYS_rt_sigprocmask	195
-
-/* syscall: "rt_sigpending" ret: "int" args: "linux_sigset_t *" "size_t" */
-#define	LINUX_SYS_rt_sigpending	196
-
-/* syscall: "rt_queueinfo" ret: "int" args: "int" "int" "void *" */
-#define	LINUX_SYS_rt_queueinfo	198
-
-/* syscall: "rt_sigsuspend" ret: "int" args: "linux_sigset_t *" "size_t" */
-#define	LINUX_SYS_rt_sigsuspend	199
-
-/* syscall: "pread" ret: "int" args: "int" "char *" "size_t" "linux_off_t" */
-#define	LINUX_SYS_pread	200
-
-/* syscall: "pwrite" ret: "int" args: "int" "char *" "size_t" "linux_off_t" */
-#define	LINUX_SYS_pwrite	201
-
-/* syscall: "__posix_chown" ret: "int" args: "const char *" "int" "int" */
-#define	LINUX_SYS___posix_chown	202
-
-/* syscall: "__getcwd" ret: "int" args: "char *" "size_t" */
-#define	LINUX_SYS___getcwd	203
-
-/* syscall: "sigaltstack" ret: "int" args: "const struct linux_sigaltstack *" "struct linux_sigaltstack *" */
-#define	LINUX_SYS_sigaltstack	206
-
-/* syscall: "mmap2" ret: "linux_off_t" args: "unsigned long" "size_t" "int" "int" "int" "linux_off_t" */
-#define	LINUX_SYS_mmap2	210
-
-/* syscall: "truncate64" ret: "int" args: "const char *" "off_t" */
-#define	LINUX_SYS_truncate64	211
-
-/* syscall: "ftruncate64" ret: "int" args: "unsigned int" "off_t" */
-#define	LINUX_SYS_ftruncate64	212
-
-/* syscall: "stat64" ret: "int" args: "const char *" "struct linux_stat64 *" */
-#define	LINUX_SYS_stat64	213
-
-/* syscall: "lstat64" ret: "int" args: "const char *" "struct linux_stat64 *" */
-#define	LINUX_SYS_lstat64	214
-
-/* syscall: "fstat64" ret: "int" args: "int" "struct linux_stat64 *" */
-#define	LINUX_SYS_fstat64	215
-
-/* syscall: "mincore" ret: "int" args: "void *" "size_t" "char *" */
-#define	LINUX_SYS_mincore	217
-
-/* syscall: "madvise" ret: "int" args: "void *" "size_t" "int" */
-#define	LINUX_SYS_madvise	218
-
-/* syscall: "getdents64" ret: "int" args: "int" "struct linux_dirent64 *" "unsigned int" */
-#define	LINUX_SYS_getdents64	219
-
-/* syscall: "fcntl64" ret: "int" args: "int" "int" "void *" */
-#define	LINUX_SYS_fcntl64	220
-
-/* syscall: "setxattr" ret: "int" args: "char *" "char *" "void *" "size_t" "int" */
-#define	LINUX_SYS_setxattr	224
-
-/* syscall: "lsetxattr" ret: "int" args: "char *" "char *" "void *" "size_t" "int" */
-#define	LINUX_SYS_lsetxattr	225
-
-/* syscall: "fsetxattr" ret: "int" args: "int" "char *" "void *" "size_t" "int" */
-#define	LINUX_SYS_fsetxattr	226
-
-/* syscall: "getxattr" ret: "ssize_t" args: "char *" "char *" "void *" "size_t" */
-#define	LINUX_SYS_getxattr	227
-
-/* syscall: "lgetxattr" ret: "ssize_t" args: "char *" "char *" "void *" "size_t" */
-#define	LINUX_SYS_lgetxattr	228
-
-/* syscall: "fgetxattr" ret: "ssize_t" args: "int" "char *" "void *" "size_t" */
-#define	LINUX_SYS_fgetxattr	229
-
-/* syscall: "listxattr" ret: "ssize_t" args: "char *" "char *" "size_t" */
-#define	LINUX_SYS_listxattr	230
-
-/* syscall: "llistxattr" ret: "ssize_t" args: "char *" "char *" "size_t" */
-#define	LINUX_SYS_llistxattr	231
-
-/* syscall: "flistxattr" ret: "ssize_t" args: "int" "char *" "size_t" */
-#define	LINUX_SYS_flistxattr	232
-
-/* syscall: "removexattr" ret: "int" args: "char *" "char *" */
-#define	LINUX_SYS_removexattr	233
-
-/* syscall: "lremovexattr" ret: "int" args: "char *" "char *" */
-#define	LINUX_SYS_lremovexattr	234
-
-/* syscall: "fremovexattr" ret: "int" args: "int" "char *" */
-#define	LINUX_SYS_fremovexattr	235
-
-/* syscall: "exit_group" ret: "int" args: "int" */
-#define	LINUX_SYS_exit_group	246
-
-/* syscall: "statfs64" ret: "int" args: "const char *" "size_t" "struct linux_statfs64 *" */
-#define	LINUX_SYS_statfs64	255
-
-/* syscall: "fstatfs64" ret: "int" args: "int" "size_t" "struct linux_statfs64 *" */
-#define	LINUX_SYS_fstatfs64	256
-
-/* syscall: "clock_settime" ret: "int" args: "clockid_t" "struct linux_timespec *" */
-#define	LINUX_SYS_clock_settime	262
-
-/* syscall: "clock_gettime" ret: "int" args: "clockid_t" "struct linux_timespec *" */
-#define	LINUX_SYS_clock_gettime	263
-
-/* syscall: "clock_getres" ret: "int" args: "clockid_t" "struct linux_timespec *" */
-#define	LINUX_SYS_clock_getres	264
-
-/* syscall: "clock_nanosleep" ret: "int" args: "clockid_t" "int" "struct linux_timespec *" "struct linux_timespec *" */
-#define	LINUX_SYS_clock_nanosleep	265
-
-#define	LINUX_SYS_MAXSYSCALL	277
+#define LINUX_SYS_restart_syscall      0
+#define LINUX_SYS_exit	1
+#define LINUX_SYS_fork	2
+#define LINUX_SYS_read	3
+#define LINUX_SYS_write	4
+#define LINUX_SYS_open	5
+#define LINUX_SYS_close	6
+#define LINUX_SYS_umask	7
+#define LINUX_SYS_creat	8
+#define LINUX_SYS_link	9
+#define LINUX_SYS_unlink	10
+#define LINUX_SYS_execve	11
+#define LINUX_SYS_chdir	12
+#define LINUX_SYS_time	13
+#define LINUX_SYS_mknod	14
+#define LINUX_SYS_chmod	15
+#define LINUX_SYS_chown	16
+#define LINUX_SYS_lchown	17
+#define LINUX_SYS_lseek	18
+#define LINUX_SYS__llseek	19
+#define LINUX_SYS_getpid	20
+#define LINUX_SYS_mount	21
+#define LINUX_SYS_umount2	22
+#define LINUX_SYS_setuid	23
+#define LINUX_SYS_getuid	24
+#define LINUX_SYS_stime	25
+#define LINUX_SYS_ptrace	26
+#define LINUX_SYS_alarm	27
+#define LINUX_SYS_pause	28
+#define LINUX_SYS_utime	29
+#define LINUX_SYS_stat	30
+#define LINUX_SYS_fstat	31
+#define LINUX_SYS_lstat	32
+#define LINUX_SYS_access	33
+#define LINUX_SYS_chroot	34
+#define LINUX_SYS_sync		 35
+#define LINUX_SYS_fsync		 36
+#define LINUX_SYS_kill		 37
+#define LINUX_SYS_rename		 38
+#define LINUX_SYS_mkdir		 39
+#define LINUX_SYS_rmdir		 40
+#define LINUX_SYS_dup		 41
+#define LINUX_SYS_pipe		 42
+#define LINUX_SYS_times		 43
+#define LINUX_SYS_clone		 44
+#define LINUX_SYS_brk		 45
+#define LINUX_SYS_setgid	 46
+#define LINUX_SYS_getgid	 47
+#define LINUX_SYS_getcwd	 48
+#define LINUX_SYS_geteuid	 49
+#define LINUX_SYS_getegid	 50
+#define LINUX_SYS_acct		 51
+#define LINUX_SYS_setfsuid	 52
+#define LINUX_SYS_setfsgid	 53
+#define LINUX_SYS_ioctl		 54
+#define LINUX_SYS_fcntl		 55
+#define LINUX_SYS_setpgid	 56
+#define LINUX_SYS_mremap	 57
+#define LINUX_SYS_setresuid	 58
+#define LINUX_SYS_getresuid	 59
+#define LINUX_SYS_setreuid	 60
+#define LINUX_SYS_setregid	 61
+#define LINUX_SYS_ustat		 62
+#define LINUX_SYS_dup2		 63
+#define LINUX_SYS_getppid	 64
+#define LINUX_SYS_getpgrp	 65
+#define LINUX_SYS_setsid	 66
+#define LINUX_SYS_rt_sigaction	 67
+#define LINUX_SYS_rt_sigreturn	 68
+#define LINUX_SYS_rt_sigprocmask 69
+#define LINUX_SYS_rt_sigpending	 70
+#define LINUX_SYS_rt_sigtimedwait 71
+#define LINUX_SYS_rt_sigqueueinfo 72
+#define LINUX_SYS_rt_sigsuspend	73
+#define LINUX_SYS_sethostname	74
+#define LINUX_SYS_setrlimit	75
+#define LINUX_SYS_getrlimit	76	
+#define LINUX_SYS_getrusage	77
+#define LINUX_SYS_gettimeofday	78
+#define LINUX_SYS_settimeofday	79
+#define LINUX_SYS_getgroups	80
+#define LINUX_SYS_setgroups	81
+#define LINUX_SYS_select	82
+#define LINUX_SYS_symlink	83
+#define LINUX_SYS_fchdir	84
+#define LINUX_SYS_readlink	85
+#define LINUX_SYS_pread		86
+#define LINUX_SYS_pwrite	87
+#define LINUX_SYS_swapon	88
+#define LINUX_SYS_reboot	89
+#define LINUX_SYS_mmap2		90
+#define LINUX_SYS_munmap	91
+#define LINUX_SYS_truncate		 92
+#define LINUX_SYS_ftruncate		 93
+#define LINUX_SYS_fchmod		 94
+#define LINUX_SYS_fchown		 95
+#define LINUX_SYS_getpriority	 96
+#define LINUX_SYS_setpriority	 97
+#define LINUX_SYS_wait4		 98
+#define LINUX_SYS_statfs		 99
+#define LINUX_SYS_fstatfs		100
+#define LINUX_SYS_vhangup		101
+#define LINUX_SYS_sigaltstack	102
+#define LINUX_SYS_syslog		103
+#define LINUX_SYS_setitimer		104
+#define LINUX_SYS_getitimer		105
+#define LINUX_SYS_swapoff		106
+#define LINUX_SYS_sysinfo		107
+#define LINUX_SYS_sendfile		109
+#define LINUX_SYS_setdomainname	110
+#define LINUX_SYS_uname		111
+#define LINUX_SYS_adjtimex		112
+#define LINUX_SYS_mprotect		113
+#define LINUX_SYS_vfork		114
+#define LINUX_SYS_init_module	115
+#define LINUX_SYS_delete_module	116
+#define LINUX_SYS_quotactl		117
+#define LINUX_SYS_getpgid		118
+#define LINUX_SYS_bdflush		119
+#define LINUX_SYS_sysfs		120
+#define LINUX_SYS_personality	121
+#define LINUX_SYS_afs_syscall	122 
+#define LINUX_SYS_getdents		123
+#define LINUX_SYS_flock		124
+#define LINUX_SYS_msync		125
+#define LINUX_SYS_readv		126
+#define LINUX_SYS_writev		127
+#define LINUX_SYS_getsid		128
+#define LINUX_SYS_fdatasync		129
+#define LINUX_SYS__sysctl		130
+#define LINUX_SYS_mlock		131
+#define LINUX_SYS_munlock		132
+#define LINUX_SYS_mlockall		133
+#define LINUX_SYS_munlockall		134
+#define LINUX_SYS_sched_setparam		135
+#define LINUX_SYS_sched_getparam		136
+#define LINUX_SYS_sched_setscheduler		137
+#define LINUX_SYS_sched_getscheduler		138
+#define LINUX_SYS_sched_yield		139
+#define LINUX_SYS_sched_get_priority_max	140
+#define LINUX_SYS_sched_get_priority_min	141
+#define LINUX_SYS_sched_rr_get_interval	142
+#define LINUX_SYS_nanosleep		143
+#define LINUX_SYS_poll		144
+#define LINUX_SYS_nfsservctl		145
+#define LINUX_SYS_setresgid		146
+#define LINUX_SYS_getresgid		147
+#define LINUX_SYS_prctl              148
+#define LINUX_SYS_socket		149
+#define LINUX_SYS_bind		150
+#define LINUX_SYS_connect		151
+#define LINUX_SYS_listen		152
+#define LINUX_SYS_accept		153
+#define LINUX_SYS_getsockname	154
+#define LINUX_SYS_getpeername	155
+#define LINUX_SYS_socketpair		156
+#define LINUX_SYS_send		157
+#define LINUX_SYS_recv		158
+#define LINUX_SYS_sendto		159
+#define LINUX_SYS_recvfrom		160
+#define LINUX_SYS_shutdown		161
+#define LINUX_SYS_setsockopt		162
+#define LINUX_SYS_getsockopt		163
+#define LINUX_SYS_sendmsg		164
+#define LINUX_SYS_recvmsg		165
+#define LINUX_SYS_truncate64		166
+#define LINUX_SYS_ftruncate64	167
+#define LINUX_SYS_stat64		168
+#define LINUX_SYS_lstat64		169
+#define LINUX_SYS_fstat64		170
+#define LINUX_SYS_pivot_root		171
+#define LINUX_SYS_mincore		172
+#define LINUX_SYS_madvise		173
+#define LINUX_SYS_getdents64		174
+#define LINUX_SYS_fcntl64		175
+#define LINUX_SYS_gettid		176
+#define LINUX_SYS_readahead		177
+#define LINUX_SYS_setxattr		178
+#define LINUX_SYS_lsetxattr		179
+#define LINUX_SYS_fsetxattr		180
+#define LINUX_SYS_getxattr		181
+#define LINUX_SYS_lgetxattr		182
+#define LINUX_SYS_fgetxattr		183
+#define LINUX_SYS_listxattr		184
+#define LINUX_SYS_llistxattr		185
+#define LINUX_SYS_flistxattr		186
+#define LINUX_SYS_removexattr	187
+#define LINUX_SYS_lremovexattr	188
+#define LINUX_SYS_fremovexattr	189
+#define LINUX_SYS_tkill		190
+#define LINUX_SYS_sendfile64		191
+#define LINUX_SYS_futex		192
+#define LINUX_SYS_sched_setaffinity	193
+#define LINUX_SYS_sched_getaffinity	194
+#define LINUX_SYS_capget		195
+#define LINUX_SYS_capset		196
+#define LINUX_SYS_io_setup		197
+#define LINUX_SYS_io_destroy		198
+#define LINUX_SYS_io_getevents	199
+#define LINUX_SYS_io_submit		200
+#define LINUX_SYS_io_cancel		201
+#define LINUX_SYS_fadvise64		202
+#define LINUX_SYS_exit_group		203
+#define LINUX_SYS_lookup_dcookie	204
+#define LINUX_SYS_epoll_create	205
+#define LINUX_SYS_epoll_ctl		206
+#define LINUX_SYS_epoll_wait		207
+#define LINUX_SYS_remap_file_pages	208
+#define LINUX_SYS_set_tid_address	209
+#define LINUX_SYS_timer_create	210
+#define LINUX_SYS_timer_settime	211
+#define LINUX_SYS_timer_gettime	212
+#define LINUX_SYS_timer_getoverrun	213
+#define LINUX_SYS_timer_delete	214
+#define LINUX_SYS_clock_settime	215
+#define LINUX_SYS_clock_gettime	216
+#define LINUX_SYS_clock_getres	217
+#define LINUX_SYS_clock_nanosleep	218
+#define LINUX_SYS_statfs64		219
+#define LINUX_SYS_fstatfs64		220
+#define LINUX_SYS_tgkill		221
+#define LINUX_SYS_utimes		223
+#define LINUX_SYS_fadvise64_64	224
+#define LINUX_SYS_cacheflush		225
+#define LINUX_SYS_vserver		226
+#define LINUX_SYS_mq_open		227
+#define LINUX_SYS_mq_unlink		228
+#define LINUX_SYS_mq_timedsend	229
+#define LINUX_SYS_mq_timedreceive	230
+#define LINUX_SYS_mq_notify		231
+#define LINUX_SYS_mq_getsetattr	232
+#define LINUX_SYS_kexec_load		233
+#define LINUX_SYS_waitid		234
+#define LINUX_SYS_add_key		235
+#define LINUX_SYS_request_key	236
+#define LINUX_SYS_keyctl		237
+#define LINUX_SYS_ioprio_set		238
+#define LINUX_SYS_ioprio_get		239
+#define LINUX_SYS_inotify_init	240
+#define LINUX_SYS_inotify_add_watch	241
+#define LINUX_SYS_inotify_rm_watch	242
+#define LINUX_SYS_openat		243
+#define LINUX_SYS_mkdirat		244
+#define LINUX_SYS_mknodat		245
+#define LINUX_SYS_fchownat		246
+#define LINUX_SYS_futimesat		247
+#define LINUX_SYS_fstatat64		248
+#define LINUX_SYS_unlinkat		249
+#define LINUX_SYS_renameat		250
+#define LINUX_SYS_linkat		251
+#define LINUX_SYS_symlinkat		252
+#define LINUX_SYS_readlinkat		253
+#define LINUX_SYS_fchmodat		254
+#define LINUX_SYS_faccessat		255
+#define LINUX_SYS_pselect6		256
+#define LINUX_SYS_ppoll		257
+#define LINUX_SYS_unshare		258
+#define LINUX_SYS_set_robust_list	259
+#define LINUX_SYS_get_robust_list	260
+#define LINUX_SYS_splice		261
+#define LINUX_SYS_sync_file_range	262
+#define LINUX_SYS_tee		263
+#define LINUX_SYS_vmsplice		264
+#define LINUX_SYS_epoll_pwait	265
+#define LINUX_SYS_msgget		266
+#define LINUX_SYS_msgsnd		267
+#define LINUX_SYS_msgrcv		268
+#define LINUX_SYS_msgctl		269
+#define LINUX_SYS_semget		270
+#define LINUX_SYS_semop		271
+#define LINUX_SYS_semctl		272
+#define LINUX_SYS_semtimedop		273
+#define LINUX_SYS_shmat		274
+#define LINUX_SYS_shmget	275
+#define LINUX_SYS_shmdt		276
+#define LINUX_SYS_shmctl		277
+#define LINUX_SYS_utimensat	278
+#define LINUX_SYS_signalfd	279
+#define LINUX_SYS_eventfd	281
+#define LINUX_SYS_syscall	(LINUX_SYS_NSYSENT - 1)	/* XXXAVR32 */
+
+#define	LINUX_SYS_MAXSYSCALL	281
 #define	LINUX_SYS_NSYSENT	512
+
 #endif /* _LINUX_SYS_SYSCALL_H_ */

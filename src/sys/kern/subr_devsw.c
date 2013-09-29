@@ -270,7 +270,6 @@ cdevsw_attach(const struct cdevsw *devsw, int *devmajor)
 	int cmajor, i;
 
 	KASSERT(mutex_owned(&specfs_lock));
-
 	if (*devmajor < 0) {
 		for (cmajor = sys_cdevsws ; cmajor < max_cdevsws ; cmajor++) {
 			if (cdevsw[cmajor] != NULL)

@@ -1,4 +1,4 @@
-/*	$NetBSD$	*/  
+/*	$NetBSD$	*/
 
 /*-
  * Copyright (c) 2013 The NetBSD Foundation, Inc.
@@ -118,9 +118,9 @@ void    pmap_set_modified(paddr_t);
 /*
  * Alternate mapping hooks for pool pages.  Avoids thrashing the TLB.
  */
-vaddr_t avr32_map_poolpage(paddr_t);
-paddr_t avr32_unmap_poolpage(vaddr_t);
-#define PMAP_MAP_POOLPAGE(pa)	avr32_map_poolpage(pa)
-#define PMAP_UNMAP_POOLPAGE(va)	avr32_unmap_poolpage(va)
+vaddr_t avr32_pmap_map_poolpage(paddr_t);
+paddr_t avr32_pmap_unmap_poolpage(vaddr_t);
+#define PMAP_MAP_POOLPAGE(pa)	avr32_pmap_map_poolpage(pa)
+#define PMAP_UNMAP_POOLPAGE(va)	avr32_pmap_unmap_poolpage(va)
 
 #endif /* !_AVR32_PMAP_H_ */

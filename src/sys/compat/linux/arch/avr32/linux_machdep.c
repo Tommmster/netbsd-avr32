@@ -68,6 +68,7 @@ __KERNEL_RCSID(0, "$NetBSD: linux_machdep.c,v 1.38 2008/04/28 20:23:43 martin Ex
 #include <compat/linux/common/linux_machdep.h>
 
 #include <compat/linux/linux_syscallargs.h>
+#include <compat/linux/linux_syscall.h>
 
 #include <sys/cpu.h>
 #include <machine/psl.h>
@@ -95,31 +96,25 @@ void
 linux_setregs(struct lwp *l, struct exec_package *pack, u_long stack)
 {
 	setregs(l, pack, stack);
-	return;
 }
 
 /*
  * Send an interrupt to process.
  *
  * Adapted from sys/arch/mips/mips/mips_machdep.c
- *
- * XXX Does not work well yet with RT signals
- *
  */
 
 void
 linux_sendsig(const ksiginfo_t *ksi, const sigset_t *mask)
 {
-	panic("linux_sendsig");
-#if 0
 	const int sig = ksi->ksi_signo;
 	struct lwp *l = curlwp;
 	struct proc *p = l->l_proc;
-	struct linux_sigframe *fp;
+	struct sigacts *ps = p->p_sigacts;
+	struct linux_rt_sigframe *fp;
 	struct frame *f;
 	int i, onstack, error;
-	sig_t catcher = SIGACTION(p, sig).sa_handler;
-	struct linux_sigframe sf;
+	struct linux_rt_sigframe sf;
 
 #ifdef DEBUG_LINUX
 	printf("linux_sendsig()\n");
@@ -134,55 +129,54 @@ linux_sendsig(const ksiginfo_t *ksi, const sigset_t *mask)
 	    (SIGACTION(p, sig).sa_flags & SA_ONSTACK) != 0;
 
 	/*
-	 * Signal stack is broken (see at the end of linux_sigreturn), so we do
-	 * not use it yet. XXX fix this.
-	 */
-	onstack=0;
-
-	/*
 	 * Allocate space for the signal handler context.
 	 */
 	if (onstack)
-		fp = (struct linux_sigframe *)
-		    ((uint8_t *)l->l_sigstk.ss_sp
-		    + l->l_sigstk.ss_size);
+		panic("linux_sendsig: onstack notyet");
 	else
-		/* cast for _MIPS_BSD_API == _MIPS_BSD_API_LP32_64CLEAN case */
-		fp = (struct linux_sigframe *)(u_int32_t)f->f_regs[_R_SP];
+		fp = (struct linux_rt_sigframe *)(u_int32_t)f->f_regs[_R_SP];
 
 	/*
 	 * Build stack frame for signal trampoline.
 	 */
 	memset(&sf, 0, sizeof sf);
 
+#if LINUX_SYS_rt_sigreturn > 127
+#error LINUX_SYS_rt_sigreturn does not fit in a 16-bit opcode.
+#endif
+
 	/*
 	 * This is the signal trampoline used by Linux, we don't use it,
-	 * but we set it up in case an application expects it to be there
+	 * but we set it up in case an application expects it to be there.
+	 *
+	 * 	mov	r8, LINUX_SYS_rt_sigreturn
+	 * 	scall
 	 */
-	sf.lsf_code[0] = 0x24020000;	/* li	v0, __NR_sigreturn	*/
-	sf.lsf_code[1] = 0x0000000c;	/* syscall			*/
+	sf.lrs_code = (0x3008d733 | LINUX_SYS_rt_sigreturn << 20);
 
-	native_to_linux_sigset(&sf.lsf_mask, mask);
-	for (i=0; i<32; i++) {
-		sf.lsf_sc.lsc_regs[i] = f->f_regs[i];
-	}
-	sf.lsf_sc.lsc_mdhi = f->f_regs[_R_MULHI];
-	sf.lsf_sc.lsc_mdlo = f->f_regs[_R_MULLO];
-	sf.lsf_sc.lsc_pc = f->f_regs[_R_PC];
-	sf.lsf_sc.lsc_status = f->f_regs[_R_SR];
-	sf.lsf_sc.lsc_cause = f->f_regs[_R_CAUSE];
-	sf.lsf_sc.lsc_badvaddr = f->f_regs[_R_BADVADDR];
+	/*
+	 * The user context.
+	 */
+	native_to_linux_sigset(&sf.lrs_uc.luc_sigmask, mask);
+	sf.lrs_uc.luc_flags = 0;
+	sf.lrs_uc.luc_link = NULL;
+
+	/* This is used regardless of SA_ONSTACK in Linux AVR32. */
+	sf.lrs_uc.luc_stack.ss_sp = l->l_sigstk.ss_sp;
+	sf.lrs_uc.luc_stack.ss_size = l->l_sigstk.ss_size;
+	sf.lrs_uc.luc_stack.ss_flags = 0;
+	if (l->l_sigstk.ss_flags & SS_ONSTACK)
+		sf.lrs_uc.luc_stack.ss_flags |= LINUX_SS_ONSTACK;
+	if (l->l_sigstk.ss_flags & SS_DISABLE)
+		sf.lrs_uc.luc_stack.ss_flags |= LINUX_SS_DISABLE;
+	memcpy(sf.lrs_uc.luc_mcontext.lsc_regs, f->f_regs,
+		sizeof(sf.lrs_uc.luc_mcontext.lsc_regs));
 	sendsig_reset(l, sig);
 
 	/*
-	 * Save signal stack.  XXX broken
+	 * Install the sigframe onto the stack.
 	 */
-	/* kregs.sc_onstack = l->l_sigstk.ss_flags & SS_ONSTACK; */
-
-	/*
-	 * Install the sigframe onto the stack
-	 */
-	fp -= sizeof(struct linux_sigframe);
+	fp -= sizeof(struct linux_rt_sigframe);
 	mutex_exit(p->p_lock);
 	error = copyout(&sf, fp, sizeof(sf));
 	mutex_enter(p->p_lock);
@@ -199,27 +193,30 @@ linux_sendsig(const ksiginfo_t *ksi, const sigset_t *mask)
 		/* NOTREACHED */
 	}
 
-	/* Set up the registers to return to sigcode. */
-	f->f_regs[_R_A0] = native_to_linux_signo[sig];
-	f->f_regs[_R_A1] = 0;
-	f->f_regs[_R_A2] = (unsigned long)&fp->lsf_sc;
-
 #ifdef DEBUG_LINUX
-	printf("sigcontext is at %p\n", &fp->lsf_sc);
+	printf("sigcontext is at %p\n", &fp->lrs_sc);
 #endif /* DEBUG_LINUX */
 
-	f->f_regs[_R_SP] = (unsigned long)fp;
-	/* Signal trampoline code is at base of user stack. */
-	f->f_regs[_R_RA] = (unsigned long)p->p_sigctx.ps_sigcode;
-	f->f_regs[_R_T9] = (unsigned long)catcher;
-	f->f_regs[_R_PC] = (unsigned long)catcher;
+	/* Set up the registers to return to sigcode. */
+	f->f_regs[_R_SP] = (register_t)fp;
+	f->f_regs[_R_R12] = native_to_linux_signo[sig];
+	f->f_regs[_R_R11] = 0;
+	f->f_regs[_R_R10] = (register_t)&fp->lrs_uc;
+	f->f_regs[_R_PC] = (register_t)SIGACTION(p, sig).sa_handler;
+
+#define RESTORER(p, sig) \
+	(p->p_sigacts->sa_sigdesc[(sig)].sd_tramp)
+
+	if (ps->sa_sigdesc[sig].sd_vers != 0)	
+		f->f_regs[_R_LR] = (register_t)RESTORER(p, sig);
+	else
+		panic("linux_sendsig: SA_RESTORER");
 
 	/* Remember that we're now on the signal stack. */
 	if (onstack)
 		l->l_sigstk.ss_flags |= SS_ONSTACK;
 
 	return;
-#endif 
 }
 
 /*
@@ -230,79 +227,75 @@ linux_sendsig(const ksiginfo_t *ksi, const sigset_t *mask)
 int
 linux_sys_sigreturn(struct lwp *l, const struct linux_sys_sigreturn_args *uap, register_t *retval)
 {
-	panic(__FUNCTION__);
-	/* {
-		syscallarg(struct linux_sigframe *) sf;
-	} */
-#if 0
-	struct proc *p = l->l_proc;
-	struct linux_sigframe *sf, ksf;
-	struct frame *f;
-	sigset_t mask;
-	int i, error;
-
-#ifdef DEBUG_LINUX
-	printf("linux_sys_sigreturn()\n");
-#endif /* DEBUG_LINUX */
-
-	/*
-	 * The trampoline code hands us the context.
-	 * It is unsafe to keep track of it ourselves, in the event that a
-	 * program jumps out of a signal handler.
-	 */
-	sf = SCARG(uap, sf);
-
-	if ((error = copyin(sf, &ksf, sizeof(ksf))) != 0)
-		return (error);
-
-	/* Restore the register context. */
-	f = (struct frame *)l->l_md.md_regs;
-	for (i=0; i<32; i++)
-		f->f_regs[i] = ksf.lsf_sc.lsc_regs[i];
-	f->f_regs[_R_MULLO] = ksf.lsf_sc.lsc_mdlo;
-	f->f_regs[_R_MULHI] = ksf.lsf_sc.lsc_mdhi;
-	f->f_regs[_R_PC] = ksf.lsf_sc.lsc_pc;
-	f->f_regs[_R_BADVADDR] = ksf.lsf_sc.lsc_badvaddr;
-	f->f_regs[_R_CAUSE] = ksf.lsf_sc.lsc_cause;
-
-	mutex_enter(p->p_lock);
-
-	/* Restore signal stack. */
-	l->l_sigstk.ss_flags &= ~SS_ONSTACK;
-
-	/* Restore signal mask. */
-	linux_to_native_sigset(&mask, (linux_sigset_t *)&ksf.lsf_mask);
-	(void)sigprocmask1(l, SIG_SETMASK, &mask, 0);
-
-	mutex_exit(p->p_lock);
-
-#endif 
+	panic("linux_sys_sigreturn: notyet");
 	return (EJUSTRETURN);
 }
-
 
 int
 linux_sys_rt_sigreturn(struct lwp *l, const void *v, register_t *retval)
 {
-	panic(__FUNCTION__);
-	return (ENOSYS);
-}
+	struct linux_ucontext *luctx;
+	struct trapframe *tf = l->l_md.md_regs;
+	struct linux_sigcontext *lsigctx;
+	struct linux_rt_sigframe frame, *fp;
+	ucontext_t uctx;
+	mcontext_t *mctx;
+	int error;
 
+	fp = (struct linux_rt_sigframe *)(tf->tf_regs[_R_SP]);
+	if ((error = copyin(fp, &frame, sizeof(frame))) != 0) {
+		mutex_enter(l->l_proc->p_lock);
+		sigexit(l, SIGILL);
+		return error;
+	}
 
-#if 0 /* Not XXXAVR32 */
-int
-linux_sys_modify_ldt(struct lwp *l, const struct linux_sys_modify_ldt_args *uap, register_t *retval)
-{
-	/*
-	 * This syscall is not implemented in Linux/Mips: we should not
-	 * be here
+	luctx = &frame.lrs_uc;
+	lsigctx = &luctx->luc_mcontext;
+
+	bzero(&uctx, sizeof(uctx));
+	mctx = (mcontext_t *)&uctx.uc_mcontext;
+
+	/* 
+	 * Set the flags. Linux always have CPU, stack and signal state,
+	 * FPU is optional. uc_flags is not used to tell what we have.
 	 */
-#ifdef DEBUG_LINUX
-	printf("linux_sys_modify_ldt: should not be here.\n");
-#endif /* DEBUG_LINUX */
-  return 0;
+	uctx.uc_flags = (_UC_SIGMASK|_UC_CPU|_UC_STACK);
+	uctx.uc_link = NULL;
+
+	/*
+	 * Signal set. 
+	 */
+	linux_to_native_sigset(&uctx.uc_sigmask, &luctx->luc_sigmask);
+
+	/*
+	 * CPU state.
+	 */
+	memcpy(mctx->__gregs, lsigctx->lsc_regs, sizeof(lsigctx->lsc_regs));
+
+	/*
+	 * And the stack.
+	 */
+	uctx.uc_stack.ss_flags = 0;
+	if (luctx->luc_stack.ss_flags & LINUX_SS_ONSTACK)
+		uctx.uc_stack.ss_flags |= SS_ONSTACK;
+
+	if (luctx->luc_stack.ss_flags & LINUX_SS_DISABLE)
+		uctx.uc_stack.ss_flags |= SS_DISABLE;
+
+	uctx.uc_stack.ss_sp = luctx->luc_stack.ss_sp;
+	uctx.uc_stack.ss_size = luctx->luc_stack.ss_size;
+
+	/*
+	 * And let setucontext deal with that.
+	 */
+	mutex_enter(l->l_proc->p_lock);
+	error = setucontext(l, &uctx);
+	mutex_exit(l->l_proc->p_lock);
+	if (error)
+		return error;
+
+	return (EJUSTRETURN);
 }
-#endif
 
 /*
  * major device numbers remapping
@@ -310,7 +303,6 @@ linux_sys_modify_ldt(struct lwp *l, const struct linux_sys_modify_ldt_args *uap,
 dev_t
 linux_fakedev(dev_t dev, int raw)
 {
-	/* XXX write me */
 	return dev;
 }
 
@@ -320,7 +312,7 @@ linux_fakedev(dev_t dev, int raw)
 int
 linux_machdepioctl(struct lwp *l, const struct linux_sys_ioctl_args *uap, register_t *retval)
 {
-	panic(__FUNCTION__);
+	panic("linux_machdepioctl: notyet");
 	return 0;
 }
 
@@ -331,16 +323,7 @@ linux_machdepioctl(struct lwp *l, const struct linux_sys_ioctl_args *uap, regist
 int
 linux_sys_ioperm(struct lwp *l, const struct linux_sys_ioperm_args *uap, register_t *retval)
 {
-	panic(__FUNCTION__);
-#if 0
-	/*
-	 * This syscall is not implemented in Linux/Mips: we should not be here
-	 */
-#ifdef DEBUG_LINUX
-	printf("linux_sys_ioperm: should not be here.\n");
-#endif /* DEBUG_LINUX */
-	return 0;
-#endif /* 0 */
+	panic(" linux_sys_ioperm: notyet");
 	return 0;
 }
 
@@ -350,28 +333,7 @@ linux_sys_ioperm(struct lwp *l, const struct linux_sys_ioperm_args *uap, registe
 int
 linux_sys_new_uname(struct lwp *l, const struct linux_sys_new_uname_args *uap, register_t *retval)
 {
-	panic(__FUNCTION__);
-/*
- * Use this if you want to try Linux emulation with a glibc-2.2
- * or higher. Note that signals will not work
- */
-#if 0 /* Not XXXAVR32 */
-        struct linux_sys_uname_args /* {
-                syscallarg(struct linux_utsname *) up;
-        } */ *uap = v;
-        struct linux_utsname luts;
-
-        strlcpy(luts.l_sysname, linux_sysname, sizeof(luts.l_sysname));
-        strlcpy(luts.l_nodename, hostname, sizeof(luts.l_nodename));
-        strlcpy(luts.l_release, "2.4.0", sizeof(luts.l_release));
-        strlcpy(luts.l_version, linux_version, sizeof(luts.l_version));
-        strlcpy(luts.l_machine, machine, sizeof(luts.l_machine));
-        strlcpy(luts.l_domainname, domainname, sizeof(luts.l_domainname));
-
-        return copyout(&luts, SCARG(uap, up), sizeof(luts));
-#else
 	return linux_sys_uname(l, (const void *)uap, retval);
-#endif
 }
 
 /*
@@ -382,95 +344,13 @@ linux_sys_new_uname(struct lwp *l, const struct linux_sys_new_uname_args *uap, r
 int
 linux_sys_cacheflush(struct lwp *l, const struct linux_sys_cacheflush_args *uap, register_t *retval)
 {
-	panic(__FUNCTION__);
-#if 0
-	mips_icache_sync_all();
-	mips_dcache_wbinv_all();
+	panic("linux_sys_cacheflush: notyet");
 	return 0;
-#endif
-}
-
-/*
- * This system call is depecated in Linux, but
- * some binaries and some libraries use it.
- */
-int
-linux_sys_sysmips(struct lwp *l, const struct linux_sys_sysmips_args *uap, register_t *retval)
-{
-	panic(__FUNCTION__);
-#if 0 /*XXXAVR32 */
-
-#if 0 /* Not XXXAVR32 */
-	struct linux_sys_sysmips_args {
-		syscallarg(int) cmd;
-		syscallarg(int) arg1;
-		syscallarg(int) arg2;
-		syscallarg(int) arg3;
-	} *uap = v;
-#endif
-	int error;
-
-	switch (SCARG(uap, cmd)) {
-	case LINUX_SETNAME: {
-		char nodename [LINUX___NEW_UTS_LEN + 1];
-		int name[2];
-		size_t len;
-
-		if ((error = copyinstr((char *)SCARG(uap, arg1), nodename,
-		    LINUX___NEW_UTS_LEN, &len)) != 0)
-			return error;
-
-		name[0] = CTL_KERN;
-		name[1] = KERN_HOSTNAME;
-		return (old_sysctl(&name[0], 2, 0, 0, nodename, len, NULL));
-
-		break;
-	}
-	case LINUX_MIPS_ATOMIC_SET: {
-		void *addr;
-		int s;
-		u_int8_t value = 0;
-
-		addr = (void *)SCARG(uap, arg1);
-
-		s = splhigh();
-		/*
-		 * No error testing here. This is bad, but Linux does
-		 * it like this. The source aknowledge "This is broken"
-		 * in a comment...
-		 */
-		(void) copyin(addr, &value, 1);
-		*retval = value;
-		value = (u_int8_t) SCARG(uap, arg2);
-		error = copyout(&value, addr, 1);
-		splx(s);
-
-		return 0;
-		break;
-	}
-	case LINUX_MIPS_FIXADE:		/* XXX not implemented */
-		break;
-	case LINUX_FLUSH_CACHE:
-		mips_icache_sync_all();
-		mips_dcache_wbinv_all();
-		break;
-	case LINUX_MIPS_RDNVRAM:
-		return EIO;
-		break;
-	default:
-		return EINVAL;
-		break;
-	}
-#ifdef DEBUG_LINUX
-	printf("linux_sys_sysmips(): unimplemented command %d\n",
-	    SCARG(uap,cmd));
-#endif /* DEBUG_LINUX */
-	return 0;
-#endif /* 0 */
 }
 
 int
 linux_usertrap(struct lwp *l, vaddr_t trapaddr, void *arg)
 {
+	panic("linux_usertrap: notyet");
 	return 0;
 }

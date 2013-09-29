@@ -45,9 +45,10 @@ typedef long linux_off_t;
 typedef int linux_pid_t;
 
 typedef unsigned long linux_ino_t;
-typedef unsigned short linux_nlink_t;
+typedef unsigned int linux_nlink_t;
 typedef linux_ino_t linux_ino_t32;
 typedef linux_nlink_t linux_nlink_t32;
+typedef int linux_timer_t;
 
 /*
  * From Linux's include/asm-avr32/termbits.h
@@ -63,15 +64,15 @@ typedef unsigned int linux_tcflag_t;
  * Still from Linux's include/asm-avr32/stat.h
  */
 struct linux_stat64 {
-	unsigned long long	 lst_dev;
-	unsigned long long	 lst_ino;
+	unsigned long long	lst_dev;
+	unsigned long long	lst_ino;
 	linux_mode_t	lst_mode;
 	linux_nlink_t	lst_nlink;
 	linux_uid_t	lst_uid;
 	linux_gid_t	lst_gid;
 	unsigned long long	lst_rdev;
 	long long	lst_size;
-	unsigned long  __pad1;	/* align 64-bit st_blocks */
+	unsigned long	lst__pad1;	/* align 64-bit st_blocks */
 	unsigned long	lst_blksize;
 	unsigned long long	lst_blocks;	/* Number 512-byte blocks allocated. */
 	linux_time_t	lst_atime;
@@ -89,24 +90,24 @@ struct linux_stat64 {
  * There is also a old_kernel_stat in Linux
  */
 struct linux_stat {     
-        linux_dev_t	lst_dev;
-        linux_ino_t	lst_ino;
-        linux_mode_t	lst_mode;
-        linux_nlink_t	lst_nlink;
-        linux_uid_t	lst_uid;
-        linux_gid_t	lst_gid;
+        short		lst_dev;
+        short		lst_ino;
+        short		lst_mode;
+        unsigned short	lst_nlink;
+        short		lst_uid;
+        short		lst_gid;
         unsigned long	lst_rdev;
         unsigned long	lst_size;
-        unsigned long	lst_blksize;
-        unsigned long	lst_blocks;
+	unsigned long 	lst_blksize;
+	unsigned long 	lst_blocks;
         unsigned long	lst_atime;
         unsigned long	lst_atime_nsec;
         unsigned long	lst_mtime;
         unsigned long	lst_mtime_nsec;
         unsigned long	lst_ctime;
         unsigned long	lst_ctime_nsec;
-        unsigned long	__unused4;
-        unsigned long	__unused5;
+	unsigned long	__unused4;
+	unsigned long	__unused5;
 }; 
 
 #endif /* !_AVR32_LINUX_TYPES_H */

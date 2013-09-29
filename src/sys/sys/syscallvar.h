@@ -48,7 +48,6 @@ sy_call(const struct sysent *sy, struct lwp *l, const void *uap,
 	l->l_sysent = sy;
 	error = (*sy->sy_call)(l, uap, rval);
 	l->l_sysent = NULL;
-
 	return error;
 }
 
